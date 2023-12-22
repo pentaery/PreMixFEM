@@ -66,4 +66,4 @@ pkg_search_module(SLEPC REQUIRED IMPORTED_TARGET slepc)
 #  Thanks!
 # add_library(slepc SHARED IMPORTED)
 # set_target_properties(slepc PROPERTIES IMPORTED_LOCATION ${PETSC}/lib/libslepc.so)
-target_link_libraries(${OUTPUT_NAME} PkgConfig::PETSC PkgConfig::SLEPC)
+target_link_libraries(${OUTPUT_NAME} PkgConfig::PETSC PkgConfig::SLEPC m)
