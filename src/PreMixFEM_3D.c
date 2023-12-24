@@ -2378,7 +2378,7 @@ PetscErrorCode _PC_apply_vec_lv3(PCCtx *s_ctx, Vec x, Vec y) {
 
   PetscFunctionReturn(0);
 }
-
+//DMDA初始化
 PetscErrorCode PC_init(PCCtx *s_ctx, PetscScalar *dom, PetscInt *mesh) {
   PetscFunctionBeginUser;
 

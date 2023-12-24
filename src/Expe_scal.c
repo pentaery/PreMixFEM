@@ -44,6 +44,7 @@ PetscErrorCode create_cross_kappa(PCCtx *s_ctx, PetscInt cr) {
 
   PetscFunctionReturn(0);
 }
+//创建一个高对比度的kappa项
 
 PetscErrorCode create_well_source_XxY_rhs(PCCtx *s_ctx, Vec *rhs) {
   PetscFunctionBeginUser;
@@ -69,14 +70,17 @@ PetscErrorCode create_well_source_XxY_rhs(PCCtx *s_ctx, Vec *rhs) {
   PetscCall(DMDAVecRestoreArray(s_ctx->dm, *rhs, &arr_source_3d));
   PetscFunctionReturn(0);
 }
+//创建右端项
 
 int main(int argc, char **argv) {
   PetscCall(SlepcInitialize(&argc, &argv, (char *)0,
                             "This is a code for strong/weak scalability tests "
                             "with a homogeneous Neumann BC!\n"));
   PetscInt mesh[3] = {8, 8, 8}, cr = 0, i;
+  //网格数，对比度初始化
   PetscBool is_petsc_default = PETSC_FALSE;
   PetscScalar dom[3] = {1.0, 1.0, 1.0}, norm_rhs;
+  //总长度初始化
 
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-size", &mesh[0], NULL));
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-size", &mesh[1], NULL));
@@ -87,9 +91,11 @@ int main(int argc, char **argv) {
 
   PCCtx s_ctx;
   PetscCall(PC_init(&s_ctx, &dom[0], &mesh[0]));
+  // DMDA初始化
   PetscCall(PC_print_info(&s_ctx));
+  // 打印一些关键信息
   PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Use contrast config=%d.\n", cr));
-
+  // 打印对比度
   PetscLogDouble main_stage[2] = {0.0, 0.0}, time_tmp;
   PetscCall(PetscTime(&time_tmp));
 
@@ -97,8 +103,11 @@ int main(int argc, char **argv) {
   Vec rhs, u, r;
   Mat A;
   PetscCall(create_cross_kappa(&s_ctx, cr));
+  //创建kappa，保存在s_ctx中的kappa里
   PetscCall(PC_create_A(&s_ctx, &A));
+  //**创建A**
   PetscCall(create_well_source_XxY_rhs(&s_ctx, &rhs));
+  //创建右端项
   PetscCall(VecNormalize(rhs, &norm_rhs));
 
   PetscCall(PetscTimeSubtract(&time_tmp));
@@ -115,16 +124,19 @@ int main(int argc, char **argv) {
     PC pc;
     PetscCall(KSPGetPC(ksp, &pc));
     PetscCall(PCSetType(pc, PCSHELL));
+    //自定义的preconditiner
     PetscCall(PCShellSetContext(pc, &s_ctx));
     PetscCall(PCShellSetSetUp(pc, PC_setup));
     PetscCall(PCShellSetApply(pc, PC_apply_vec));
     PetscCall(
         PCShellSetName(pc, "3levels-MG-via-GMsFEM-with-velocity-elimination"));
   }
+  //设定preconditioner
 
   PetscCall(KSPSetNormType(ksp, KSP_NORM_UNPRECONDITIONED));
   PetscCall(KSPSetFromOptions(ksp));
   // Default is KSP_NORM_PRECONDITIONED, which is not the real residual norm.
+  // Why?
   PetscCall(KSPSetUp(ksp));
   PetscCall(VecDuplicate(rhs, &u));
   PetscCall(KSPSolve(ksp, rhs, u));
@@ -137,6 +149,7 @@ int main(int argc, char **argv) {
   PetscCall(VecDuplicate(u, &r));
   PetscCall(MatMult(A, u, r));
   PetscCall(VecAXPY(r, -1.0, rhs));
+  //求误差
   PetscCall(VecNorm(r, NORM_2, &residual));
   PetscCall(VecNorm(rhs, NORM_2, &norm_rhs));
   PetscCall(KSPGetIterationNumber(ksp, &iter_count));
