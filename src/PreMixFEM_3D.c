@@ -2378,7 +2378,7 @@ PetscErrorCode _PC_apply_vec_lv3(PCCtx *s_ctx, Vec x, Vec y) {
 
   PetscFunctionReturn(0);
 }
-//DMDA初始化
+// DMDA初始化
 PetscErrorCode PC_init(PCCtx *s_ctx, PetscScalar *dom, PetscInt *mesh) {
   PetscFunctionBeginUser;
 
@@ -2544,6 +2544,7 @@ PetscErrorCode PC_create_A(PCCtx *s_ctx, Mat *A) {
   Vec kappa_loc[DIM]; // Destroy later.
   PetscInt proc_startx, proc_starty, proc_startz, proc_nx, proc_ny, proc_nz, ex,
       ey, ez, i;
+  //赋值迭代变量
   PetscScalar ***arr_kappa_3d[DIM], val_A[2][2], meas_elem, meas_face_yz,
       meas_face_zx, meas_face_xy, avg_kappa_e;
   MatStencil row[2], col[2];
@@ -2559,6 +2560,7 @@ PetscErrorCode PC_create_A(PCCtx *s_ctx, Mat *A) {
   meas_face_yz = s_ctx->H_y * s_ctx->H_z;
   meas_face_zx = s_ctx->H_z * s_ctx->H_x;
   meas_face_xy = s_ctx->H_x * s_ctx->H_y;
+  //计算网格体积和面积
 
   PetscCall(DMDAGetCorners(s_ctx->dm, &proc_startx, &proc_starty, &proc_startz,
                            &proc_nx, &proc_ny, &proc_nz));
