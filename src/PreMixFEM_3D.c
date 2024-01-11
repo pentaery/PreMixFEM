@@ -2555,6 +2555,7 @@ PetscErrorCode PC_create_A(PCCtx *s_ctx, Mat *A) {
                               kappa_loc[i]));
     PetscCall(DMDAVecGetArrayRead(s_ctx->dm, kappa_loc[i], &arr_kappa_3d[i]));
   }
+  //将每个进程中的kappa取出来
 
   meas_elem = s_ctx->H_x * s_ctx->H_y * s_ctx->H_z;
   meas_face_yz = s_ctx->H_y * s_ctx->H_z;
@@ -2610,6 +2611,7 @@ PetscErrorCode PC_create_A(PCCtx *s_ctx, Mat *A) {
                                         &val_A[0][0], ADD_VALUES));
         }
       }
+  //A的赋值
   PetscCall(MatAssemblyBegin(*A, MAT_FINAL_ASSEMBLY));
   PetscCall(MatAssemblyEnd(*A, MAT_FINAL_ASSEMBLY));
   for (i = 0; i < DIM; ++i) {
