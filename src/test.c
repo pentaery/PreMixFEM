@@ -3,9 +3,11 @@
 #include <petscdmdatypes.h>
 #include <petscdmtypes.h>
 #include <petscerror.h>
+#include <petscksp.h>
 #include <petscmat.h>
 #include <petscsys.h>
 #include <petscsystypes.h>
+#include <petscvec.h>
 static char help[] = "A test for TOOP.";
 
 #include <petsc.h>
@@ -16,22 +18,23 @@ int main(int argc, char **args) {
   PetscCall(PetscInitialize(&argc, &args, (char *)0, help));
   DM dm;
   Mat A;
+  KSP ksp;
+  Vec b,u;
   PetscInt M = 5, N = 3, i, j;
-  PetscReal x[M - 1][N - 1];
-  for (i = 0; i < M - 1; i++) {
-    for (j = 0; j < N - 1; j++) {
-      x[i][j] = 0.5;
-    }
-  }
   PetscCall(DMDACreate2d(PETSC_COMM_WORLD, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
                          DMDA_STENCIL_BOX, M, N, PETSC_DECIDE, PETSC_DECIDE, 2,
                          1, NULL, NULL, &dm));
   PetscCall(DMSetUp(dm));
   PetscCall(DMCreateMatrix(dm, &A));
+
+
   formMatrix(dm, A);
 
   PetscCall(MatDestroy(&A));
   PetscCall(DMDestroy(&dm));
+  PetscCall(VecDestroy(&b));
+  PetscCall(VecDestroy(&u));
+  PetscCall(KSPDestroy(&ksp));
   PetscCall(PetscFinalize());
   return 0;
 }
