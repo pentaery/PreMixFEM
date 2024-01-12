@@ -51,7 +51,7 @@ project(PreMixFEM)
 set(SOURCES 
 #  src/PreMixFEM_3D.c
 #  src/Expe_frac.c
-  src/test.c
+  src/stag.c
 )
 SET(OUTPUT_NAME test)
 add_executable(${OUTPUT_NAME} ${SOURCES})
