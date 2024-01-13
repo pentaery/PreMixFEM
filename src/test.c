@@ -11,37 +11,37 @@
 #include <petscviewer.h>
 static char help[] = "A test for TOOP.";
 
-PetscErrorCode FormKE(PetscReal KE[8][8], PetscReal coef);
+PetscErrorCode formKE(PetscReal KE[8][8], PetscReal coef);
 PetscErrorCode formMatrix(DM dm, Mat A, Vec x);
-PetscErrorCode formRHS(DM dm, Vec *rhs);
+PetscErrorCode formRHS(DM dm, Vec rhs, PetscInt N);
+PetscErrorCode computeCost(DM dm, PetscReal *cost, Vec dc);
 
 int main(int argc, char **args) {
   PetscCall(PetscInitialize(&argc, &args, (char *)0, help));
   DM dm;
   Mat A;
   Vec x;
+  Vec dc;
   Vec b, u;
   KSP ksp;
-  PetscInt M = 5, N = 7;
-  PetscInt startx, starty, nx, ny;
-  PetscReal ***array;
+  PetscInt M = 5, N = 4;
+  PetscReal cost = 0;
   PetscCall(DMDACreate2d(PETSC_COMM_WORLD, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
                          DMDA_STENCIL_BOX, M, N, PETSC_DECIDE, PETSC_DECIDE, 2,
                          1, NULL, NULL, &dm));
   PetscCall(DMSetUp(dm));
 
-  // Create A
   PetscCall(DMCreateMatrix(dm, &A));
 
   PetscCall(DMCreateGlobalVector(dm, &x));
   PetscCall(DMCreateGlobalVector(dm, &b));
   PetscCall(DMCreateGlobalVector(dm, &u));
+  PetscCall(DMCreateGlobalVector(dm, &dc));
   PetscCall(VecSet(x, 0.5));
+
   formMatrix(dm, A, x);
-  formRHS(dm, &b);
-  PetscCall(
-      PetscPrintf(PETSC_COMM_SELF, "%d,%d, %d,%d\n", startx, starty, nx, ny));
-  PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
+  formRHS(dm, b, N);
+  computeCost(dm, &cost, dc);
 
   PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
   PetscCall(KSPSetOperators(ksp, A, A));
@@ -60,6 +60,7 @@ int main(int argc, char **args) {
 }
 
 PetscErrorCode formMatrix(DM dm, Mat A, Vec x) {
+  PetscFunctionBeginUser;
   // PetscInt sizea, sizeb;
   PetscReal value[8][8];
   PetscReal coef;
@@ -86,15 +87,39 @@ PetscErrorCode formMatrix(DM dm, Mat A, Vec x) {
       row[6] = (MatStencil){.i = ex + 1, .j = ey + 1, .c = 0};
       row[7] = (MatStencil){.i = ex + 1, .j = ey + 1, .c = 1};
       PetscCall(DMDAVecGetArrayDOF(dm, x, &array));
-      coef = array[ex][ey][0];
+      coef = array[ey][ex][0] * array[ey][ex][0] * array[ey][ex][0];
       PetscCall(DMDAVecRestoreArrayDOF(dm, x, &array));
-      FormKE(value, coef);
+      formKE(value, coef);
       PetscCall(
           MatSetValuesStencil(A, 8, col, 8, row, &value[0][0], ADD_VALUES));
     }
   }
+
   PetscCall(MatAssemblyBegin(A, MAT_FINAL_ASSEMBLY));
   PetscCall(MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY));
+  PetscInt M, N;
+  PetscCall(MatGetOwnershipRange(A, &M, &N));
+  PetscCall(PetscPrintf(PETSC_COMM_SELF, "m: %d, n: %d\n", M, N));
+  PetscCall(PetscPrintf(PETSC_COMM_SELF,
+                        "startx: %d, starty: %d, nx:%d, ny: %d\n", startx,
+                        starty, nx, ny));
+  PetscCall(MatView(A, PETSC_VIEWER_STDOUT_WORLD));
+  MatStencil row0;
+  for (ey = starty; ey < starty + ny; ++ey) {
+    for (ex = startx; ex < startx + nx; ++ex) {
+      if (ex == 0) {
+        row0 = (MatStencil){.i = ex, .j = ey, .c = 1};
+        PetscCall(MatZeroRowsStencil(A, 1, &row0, 1, NULL, NULL));
+      }
+    }
+  }
+  // if (startx == 0 || starty == 0) {
+  //   // PetscCall(MatZeroRows(A, 1, &row1, 1, NULL, NULL));
+  //   PetscCall(MatZeroRowsColumns(A, 1, &row1, 1, NULL, NULL));
+  // };
+  // row0 = (MatStencil){.i = 0, .j = 0, .c = 1};
+  // PetscCall(MatZeroRowsStencil(A, 1, &row0, 1, NULL, NULL));
+
   // PetscCall(DMCreateGlobalVector(dm, &a));
   // PetscCall(DMCreateLocalVector(dm, &b));
   // PetscCall(VecGetSize(a, &sizea));
@@ -103,13 +128,11 @@ PetscErrorCode formMatrix(DM dm, Mat A, Vec x) {
   //     PetscPrintf(PETSC_COMM_SELF, "sizea: %d, sizeb:%d\n", sizea,
   // sizeb));
 
-  // PetscCall(PetscPrintf(PETSC_COMM_SELF,
-  //                       "startx: %d, starty: %d, nx:%d, ny: %d\n", startx,
-  //                       starty, nx, ny));
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode formKE(PetscReal KE[8][8], PetscReal coef) {
+  PetscFunctionBeginUser;
   PetscInt i, j;
   PetscReal nu = 0.3, factor = coef / (1 - nu * nu);
   PetscReal k[8] = {1.0 / 2.0 - nu / 6.0,
@@ -147,24 +170,42 @@ PetscErrorCode formKE(PetscReal KE[8][8], PetscReal coef) {
     }
   }
 
-  return 0;
+  PetscFunctionReturn(0);
 }
 
-PetscErrorCode formRHS(DM dm, Vec *rhs) {
+PetscErrorCode formRHS(DM dm, Vec rhs, PetscInt N) {
   PetscFunctionBeginUser;
   PetscReal ***array;
-  PetscInt startx, starty, nx, ny;
+  PetscInt startx, starty, nx, ny, ex, ey;
   PetscCall(DMDAGetCorners(dm, &startx, &starty, NULL, &nx, &ny, NULL));
 
   // Set RHS
-  PetscCall(DMDAVecGetArrayDOF(dm, *rhs, &array));
-  if (startx <= 1 && starty <= 0 && startx + nx - 1 >= 1 &&
-      starty + ny - 1 >= 0) {
-    PetscCall(PetscPrintf(PETSC_COMM_SELF, "hhh%d,%d, %d,%d\n", startx, starty,
-                          nx, ny));
-    array[1][0][0] = -1;
+  PetscCall(DMDAVecGetArrayDOF(dm, rhs, &array));
+  for (ey = starty; ey < starty + ny; ey++) {
+    for (ex = startx; ex < startx + nx; ex++) {
+      if (ex == 0) {
+        array[ey][ex][0] = 0;
+        if (ey == N - 1) {
+          array[ey][ex][1] = -1;
+        }
+      }
+    }
   }
-  PetscCall(DMDAVecRestoreArrayDOF(dm, *rhs, &array));
 
+  PetscCall(DMDAVecRestoreArrayDOF(dm, rhs, &array));
+  // PetscCall(VecView(rhs, PETSC_VIEWER_STDOUT_WORLD));
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode computeCost(DM dm, PetscReal *cost, Vec dc) {
+  PetscFunctionBeginUser;
+  PetscInt startx, starty, nx, ny, ex, ey;
+  PetscReal value[8][8];
+  formKE(value, 1);
+  PetscCall(DMDAGetCorners(dm, &startx, &starty, NULL, &nx, &ny, NULL));
+  for (ey = starty; ey < starty + ny - 1; ey++) {
+    for (ex = startx; ex < startx + nx - 1; ex++) {
+    }
+  }
   PetscFunctionReturn(0);
 }
