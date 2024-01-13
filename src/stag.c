@@ -10,7 +10,7 @@ int main(int argc, char **args) {
   // PetscReal change = 1, cost;
   PetscInt M = 5, N = 7, size;
   PetscInt startx, starty, nx, ny, ex, ey, sum = 0;
-  PetscReal **array;
+  PetscReal ***array;
   PetscCall(DMDACreate2d(PETSC_COMM_WORLD, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
                          DMDA_STENCIL_BOX, M, N, PETSC_DECIDE, PETSC_DECIDE, 2,
                          1, NULL, NULL, &dm));
@@ -20,15 +20,17 @@ int main(int argc, char **args) {
   PetscCall(PetscPrintf(PETSC_COMM_SELF, "%d,%d\n", startx, starty));
   PetscCall(PetscPrintf(PETSC_COMM_SELF, "%d,%d\n", nx, ny));
   PetscCall(DMCreateGlobalVector(dm, &x));
-  PetscCall(DMDAVecGetArray(dm, x, &array));
+  PetscCall(DMDAVecGetArrayDOF(dm, x, &array));
   for (ey = starty; ey < starty + ny; ey++) {
     for (ex = startx; ex < startx + nx; ex++) {
-      array[ey][ex] = 1;
+      array[ey][ex][0] = ex;
+      array[ey][ex][1] = ey;
       sum += 1;
     }
   }
+
   PetscCall(PetscPrintf(PETSC_COMM_SELF, "sum: %d\n", sum));
-  PetscCall(DMDAVecRestoreArray(dm, x, &array));
+  PetscCall(DMDAVecRestoreArrayDOF(dm, x, &array));
   PetscCall(VecGetSize(x, &size));
 
   PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
