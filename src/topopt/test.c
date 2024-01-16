@@ -50,7 +50,7 @@ int main(int argc, char **args) {
     PetscCall(KSPSetOperators(ksp, A, A));
     PetscCall(KSPSetFromOptions(ksp));
     PetscCall(KSPSolve(ksp, b, u));
-    PetscCall(computeCost(dm, &cost, u, dc, x));
+    PetscCall(computeCost(dm, &cost, u, dc, x, M, N));
     // PetscCall(filter(dm, dc, x, M, N));
     PetscCall(optimalCriteria(dm, x, dc, volfrac));
     PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));

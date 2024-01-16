@@ -5,6 +5,7 @@
 #include <petscdmdatypes.h>
 #include <petscdmtypes.h>
 #include <petscerror.h>
+#include <petscksp.h>
 #include <petscmat.h>
 #include <petscsys.h>
 #include <petscvec.h>
@@ -15,16 +16,28 @@ int main(int argc, char **args) {
   DM dm;
   PetscInt M = 3, N = 3;
   Mat A;
-  Vec x;
+  Vec x, b, u, dc;
+  KSP ksp;
+  PetscReal volfrac = (M - 1) * (N - 1) * 0.5, cost, allcost;
   PetscCall(DMDACreate2d(PETSC_COMM_WORLD, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
                          DMDA_STENCIL_BOX, M, N, PETSC_DECIDE, PETSC_DECIDE, 2,
                          1, NULL, NULL, &dm));
   PetscCall(DMSetUp(dm));
   PetscCall(DMCreateMatrix(dm, &A));
   PetscCall(DMCreateGlobalVector(dm, &x));
+  PetscCall(DMCreateGlobalVector(dm, &b));
+  PetscCall(DMCreateGlobalVector(dm, &u));
+  PetscCall(DMCreateGlobalVector(dm, &dc));
   PetscCall(VecSet(x, 0.5));
   PetscCall(formMatrix(dm, A, x, M, N));
-  PetscCall(MatView(A, PETSC_VIEWER_STDOUT_WORLD));
+  PetscCall(formRHS(dm, b, N));
+  PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
+  PetscCall(KSPSetOperators(ksp, A, A));
+  PetscCall(KSPSolve(ksp, b, u));
+  PetscCall(computeCost(dm, &cost, u, dc, x, M, N));
+  MPI_Allreduce(&cost, &allcost, 1, MPIU_SCALAR, MPI_SUM, PETSC_COMM_WORLD);
+
+  PetscCall(optimalCriteria(dm, x, dc, volfrac, M, N));
 
   PetscCall(PetscFinalize());
 }
