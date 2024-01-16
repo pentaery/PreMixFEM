@@ -260,8 +260,8 @@ PetscErrorCode optimalCriteria(DM dm, Vec x, Vec dc, PetscReal volfrac,
   PetscCall(DMDAVecGetArrayDOF(dm, dc, &arraydc));
   PetscCall(DMDAVecGetArrayDOF(dm, x, &arrayx));
   PetscCall(DMDAGetCorners(dm, &startx, &starty, NULL, &nx, &ny, NULL));
+  lmid = 50000;
   while (l2 - l1 > 1e-4) {
-    lmid = (l1 + l2) / 2;
     sum = 0;
     for (ey = starty; ey < starty + ny; ey++) {
       for (ex = startx; ex < startx + nx; ex++) {
@@ -279,16 +279,18 @@ PetscErrorCode optimalCriteria(DM dm, Vec x, Vec dc, PetscReal volfrac,
       }
     }
     PetscCall(MPI_Comm_rank(PETSC_COMM_WORLD, &rank));
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "rank: %d\n", rank));
     PetscCallMPI(MPI_Allreduce(&sum, &allsum, 1, MPIU_SCALAR, MPI_SUM,
                                PETSC_COMM_WORLD));
 
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "allsum: %f\n", lmid));
-    if (sum > volfrac) {
+    PetscCall(PetscPrintf(PETSC_COMM_SELF, "lambda: %f\n", lmid));
+    PetscCall(PetscPrintf(PETSC_COMM_SELF, "sum: %f\n", allsum));
+
+    if (allsum > volfrac) {
       l1 = lmid;
     } else {
       l2 = lmid;
     }
+    lmid = (l1 + l2) / 2;
   }
 
   PetscCall(DMDAVecRestoreArrayDOF(dm, dc, &arraydc));

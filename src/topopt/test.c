@@ -52,7 +52,7 @@ int main(int argc, char **args) {
     PetscCall(KSPSolve(ksp, b, u));
     PetscCall(computeCost(dm, &cost, u, dc, x, M, N));
     // PetscCall(filter(dm, dc, x, M, N));
-    PetscCall(optimalCriteria(dm, x, dc, volfrac));
+    PetscCall(optimalCriteria(dm, x, dc, volfrac, M, N));
     PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
     PetscCall(VecAXPY(xold, -1, x));
 
