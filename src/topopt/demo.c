@@ -8,6 +8,7 @@
 #include <petscksp.h>
 #include <petscmat.h>
 #include <petscsys.h>
+#include <petscsystypes.h>
 #include <petscvec.h>
 #include <petscviewer.h>
 static char help[] = "This is a demo.";
@@ -18,7 +19,8 @@ int main(int argc, char **args) {
   Mat A;
   Vec x, b, u, dc;
   KSP ksp;
-  PetscReal volfrac = (M - 1) * (N - 1) * 0.5, cost, allcost;
+  PetscReal cost;
+  // PetscReal volfrac = (M - 1) * (N - 1) * 0.5;
   PetscCall(DMDACreate2d(PETSC_COMM_WORLD, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
                          DMDA_STENCIL_BOX, M, N, PETSC_DECIDE, PETSC_DECIDE, 2,
                          1, NULL, NULL, &dm));
@@ -34,10 +36,11 @@ int main(int argc, char **args) {
   PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
   PetscCall(KSPSetOperators(ksp, A, A));
   PetscCall(KSPSolve(ksp, b, u));
-  PetscCall(computeCost(dm, &cost, u, dc, x, M, N));
-  MPI_Allreduce(&cost, &allcost, 1, MPIU_SCALAR, MPI_SUM, PETSC_COMM_WORLD);
 
-  PetscCall(optimalCriteria(dm, x, dc, volfrac, M, N));
+  PetscCall(computeCost(dm, &cost, u, dc, x, M, N));
+  // MPI_Allreduce(&cost, &allcost, 1, MPIU_SCALAR, MPI_SUM, PETSC_COMM_WORLD);
+
+  // PetscCall(optimalCriteria(dm, x, dc, volfrac, M, N));
 
   PetscCall(PetscFinalize());
 }

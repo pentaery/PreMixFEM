@@ -53,37 +53,24 @@ PetscErrorCode formMatrix(DM dm, Mat A, Vec x, PetscInt M, PetscInt N) {
 
   PetscCall(MatAssemblyBegin(A, MAT_FINAL_ASSEMBLY));
   PetscCall(MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY));
-
-  // PetscCall(MatGetOwnershipRange(A, &M, &N));
-  // PetscCall(PetscPrintf(PETSC_COMM_SELF, "m: %d, n: %d\n", M, N));
+  MatStencil *rows;
+  PetscInt count = 0;
+  PetscCall(PetscMalloc1(N, &rows));
   // PetscCall(PetscPrintf(PETSC_COMM_SELF,
-  //                       "startx: %d, starty: %d, nx:%d, ny: %d\n", startx,
+  //                       "startx: %d, starty: %d, nx: %d, ny: %d\n", startx,
   //                       starty, nx, ny));
-  // PetscCall(MatView(A, PETSC_VIEWER_STDOUT_WORLD));
-  // MatStencil row0;
-  // for (ey = starty; ey < starty + ny; ++ey) {
-  //   for (ex = startx; ex < startx + nx; ++ex) {
-  //     if (ex == 0) {
-  //       row0 = (MatStencil){.i = ex, .j = ey, .c = 1};
-  //       PetscCall(MatZeroRowsStencil(A, 1, &row0, 1, NULL, NULL));
-  //     }
-  //   }
-  // }
-  // if (startx == 0 || starty == 0) {
-  //   // PetscCall(MatZeroRows(A, 1, &row1, 1, NULL, NULL));
-  //   PetscCall(MatZeroRowsColumns(A, 1, &row1, 1, NULL, NULL));
-  // };
-  // row0 = (MatStencil){.i = 0, .j = 0, .c = 1};
-  // PetscCall(MatZeroRowsStencil(A, 1, &row0, 1, NULL, NULL));
 
-  // PetscCall(DMCreateGlobalVector(dm, &a));
-  // PetscCall(DMCreateLocalVector(dm, &b));
-  // PetscCall(VecGetSize(a, &sizea));
-  // PetscCall(VecGetSize(b, &sizeb));
-  // PetscCall(
-  //     PetscPrintf(PETSC_COMM_SELF, "sizea: %d, sizeb:%d\n", sizea,
-  // sizeb));
-
+  for (ey = starty; ey < starty + ny; ++ey) {
+    for (ex = startx; ex < startx + nx; ++ex) {
+      // PetscCall(PetscPrintf(PETSC_COMM_SELF, "ex: %d, ey: %d\n", ex, ey));
+      if (ex == 0) {
+        rows[count++] = (MatStencil){.i = ex, .j = ey, .c = 0};
+        // PetscCall(PetscPrintf(PETSC_COMM_SELF, "ex: %d, ey: %d\n", ex, ey));
+      }
+    }
+  }
+  PetscCall(MatZeroRowsColumnsStencil(A, count, rows, 1.0, 0, 0));
+  PetscCall(PetscFree(rows));
   PetscFunctionReturn(0);
 }
 
@@ -164,12 +151,14 @@ PetscErrorCode computeCost(DM dm, PetscReal *cost, Vec u, Vec dc, Vec x,
   Vec localu;
   formKE(value, 1);
   PetscCall(DMDAGetCorners(dm, &startx, &starty, NULL, &nx, &ny, NULL));
+
   PetscCall(DMGetLocalVector(dm, &localu));
   PetscCall(DMGlobalToLocal(dm, u, INSERT_VALUES, localu));
+
   PetscCall(DMDAVecGetArrayDOF(dm, localu, &array));
   PetscCall(DMDAVecGetArrayDOF(dm, x, &arrayx));
   PetscCall(DMDAVecGetArrayDOF(dm, dc, &arraydc));
-  *cost = 0;
+  PetscReal localcost = 0;
   // PetscCall(
   //     PetscPrintf(PETSC_COMM_SELF, "cost before calculating: %f\n", *cost));
   for (ey = starty; ey < starty + ny; ++ey) {
@@ -189,16 +178,19 @@ PetscErrorCode computeCost(DM dm, PetscReal *cost, Vec u, Vec dc, Vec x,
             v += Ue[j] * value[i][j] * Ue[i];
           }
         }
-        *cost += v;
+        localcost += v;
         arraydc[ey][ex][0] = -3 * v * arrayx[ey][ex][0] * arrayx[ey][ex][0];
       }
     }
   }
   // PetscCall(
   //     PetscPrintf(PETSC_COMM_SELF, "cost after calculating: %f \n", *cost));
+
   PetscCall(DMDAVecRestoreArrayDOF(dm, localu, &array));
   PetscCall(DMDAVecRestoreArrayDOF(dm, x, &arrayx));
   PetscCall(DMDAVecRestoreArrayDOF(dm, dc, &arraydc));
+  PetscCallMPI(MPI_Allreduce(&localcost, cost, 1, MPI_DOUBLE, MPI_SUM,
+                             PETSC_COMM_WORLD));
   PetscFunctionReturn(0);
 }
 
@@ -260,8 +252,8 @@ PetscErrorCode optimalCriteria(DM dm, Vec x, Vec dc, PetscReal volfrac,
   PetscCall(DMDAVecGetArrayDOF(dm, dc, &arraydc));
   PetscCall(DMDAVecGetArrayDOF(dm, x, &arrayx));
   PetscCall(DMDAGetCorners(dm, &startx, &starty, NULL, &nx, &ny, NULL));
-  lmid = 50000;
   while (l2 - l1 > 1e-4) {
+    lmid = (l1 + l2) / 2;
     sum = 0;
     for (ey = starty; ey < starty + ny; ey++) {
       for (ex = startx; ex < startx + nx; ex++) {
@@ -279,18 +271,16 @@ PetscErrorCode optimalCriteria(DM dm, Vec x, Vec dc, PetscReal volfrac,
       }
     }
     PetscCall(MPI_Comm_rank(PETSC_COMM_WORLD, &rank));
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "rank: %d\n", rank));
     PetscCallMPI(MPI_Allreduce(&sum, &allsum, 1, MPIU_SCALAR, MPI_SUM,
                                PETSC_COMM_WORLD));
 
-    PetscCall(PetscPrintf(PETSC_COMM_SELF, "lambda: %f\n", lmid));
-    PetscCall(PetscPrintf(PETSC_COMM_SELF, "sum: %f\n", allsum));
-
-    if (allsum > volfrac) {
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "allsum: %f\n", lmid));
+    if (sum > volfrac) {
       l1 = lmid;
     } else {
       l2 = lmid;
     }
-    lmid = (l1 + l2) / 2;
   }
 
   PetscCall(DMDAVecRestoreArrayDOF(dm, dc, &arraydc));
