@@ -8,10 +8,18 @@
 #include <petscerror.h>
 #include <petscksp.h>
 #include <petscmat.h>
+#include <petscmath.h>
 #include <petscsys.h>
 #include <petscsystypes.h>
 #include <petscvec.h>
 #include <petscviewer.h>
+
+
+PetscErrorCode formx(DM dm, Vec x) {
+  PetscFunctionBeginUser;
+  
+  PetscFunctionReturn(0);
+}
 
 PetscErrorCode formMatrix(DM dm, Mat A, Vec x, PetscInt M, PetscInt N) {
   PetscFunctionBeginUser;
@@ -246,7 +254,7 @@ PetscErrorCode optimalCriteria(DM dm, Vec x, Vec dc, PetscReal volfrac,
                                PetscInt M, PetscInt N) {
   PetscFunctionBeginUser;
   PetscReal l1 = 0, l2 = 100000, move = 0.2, lmid;
-  PetscInt startx, starty, nx, ny, ex, ey, rank;
+  PetscInt startx, starty, nx, ny, ex, ey;
   PetscReal ***arraydc, ***arrayx;
   PetscReal sum, allsum;
   PetscCall(DMDAVecGetArrayDOF(dm, dc, &arraydc));
@@ -254,9 +262,9 @@ PetscErrorCode optimalCriteria(DM dm, Vec x, Vec dc, PetscReal volfrac,
   PetscCall(DMDAGetCorners(dm, &startx, &starty, NULL, &nx, &ny, NULL));
   while (l2 - l1 > 1e-4) {
     lmid = (l1 + l2) / 2;
-    sum = 0;
-    for (ey = starty; ey < starty + ny; ey++) {
-      for (ex = startx; ex < startx + nx; ex++) {
+    sum = 0.0;
+    for (ey = starty; ey < starty + ny; ++ey) {
+      for (ex = startx; ex < startx + nx; ++ex) {
         if (ex < M - 1 && ey < N - 1) {
           if (-arrayx[ey][ex][0] * arraydc[ey][ex][0] / lmid <
               fmax(0.001, arrayx[ey][ex][0] - move)) {
@@ -264,19 +272,21 @@ PetscErrorCode optimalCriteria(DM dm, Vec x, Vec dc, PetscReal volfrac,
           } else if (-arrayx[ey][ex][0] * arraydc[ey][ex][0] / lmid >
                      fmin(1, arrayx[ey][ex][0] + move)) {
             arrayx[ey][ex][0] = fmin(1, arrayx[ey][ex][0] + move);
-          } else
+          } else {
             arrayx[ey][ex][0] = -arrayx[ey][ex][0] * arraydc[ey][ex][0] / lmid;
+          }
           sum += arrayx[ey][ex][0];
         }
       }
     }
-    PetscCall(MPI_Comm_rank(PETSC_COMM_WORLD, &rank));
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "rank: %d\n", rank));
-    PetscCallMPI(MPI_Allreduce(&sum, &allsum, 1, MPIU_SCALAR, MPI_SUM,
-                               PETSC_COMM_WORLD));
+    // PetscCall(MPI_Comm_rank(PETSC_COMM_WORLD, &rank));
+    // PetscCall(PetscPrintf(PETSC_COMM_SELF, "rank: %d\n", rank));
+    PetscCallMPI(
+        MPI_Allreduce(&sum, &allsum, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD));
 
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "allsum: %f\n", lmid));
-    if (sum > volfrac) {
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "allsum: %f\n", allsum));
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "lambda: %f\n", lmid));
+    if (allsum > volfrac) {
       l1 = lmid;
     } else {
       l2 = lmid;

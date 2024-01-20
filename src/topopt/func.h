@@ -12,6 +12,7 @@
 #include <petscvec.h>
 #include <petscviewer.h>
 
+PetscErrorCode(formx(DM dm, Vec x));
 PetscErrorCode formKE(PetscReal KE[8][8], PetscReal coef);
 PetscErrorCode formMatrix(DM dm, Mat A, Vec x, PetscInt M, PetscInt N);
 PetscErrorCode formRHS(DM dm, Vec rhs, PetscInt N);

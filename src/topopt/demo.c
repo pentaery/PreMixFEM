@@ -20,7 +20,7 @@ int main(int argc, char **args) {
   Vec x, b, u, dc;
   KSP ksp;
   PetscReal cost;
-  // PetscReal volfrac = (M - 1) * (N - 1) * 0.5;
+  PetscReal volfrac = (M - 1) * (N - 1) * 0.3;
   PetscCall(DMDACreate2d(PETSC_COMM_WORLD, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
                          DMDA_STENCIL_BOX, M, N, PETSC_DECIDE, PETSC_DECIDE, 2,
                          1, NULL, NULL, &dm));
@@ -33,14 +33,16 @@ int main(int argc, char **args) {
   PetscCall(VecSet(x, 0.5));
   PetscCall(formMatrix(dm, A, x, M, N));
   PetscCall(formRHS(dm, b, N));
+  PetscCall(MatView(A, PETSC_VIEWER_STDOUT_WORLD));
   PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
   PetscCall(KSPSetOperators(ksp, A, A));
   PetscCall(KSPSolve(ksp, b, u));
 
   PetscCall(computeCost(dm, &cost, u, dc, x, M, N));
-  // MPI_Allreduce(&cost, &allcost, 1, MPIU_SCALAR, MPI_SUM, PETSC_COMM_WORLD);
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
 
-  // PetscCall(optimalCriteria(dm, x, dc, volfrac, M, N));
+  PetscCall(optimalCriteria(dm, x, dc, volfrac, M, N));
+  PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
 
   PetscCall(PetscFinalize());
 }
