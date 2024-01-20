@@ -14,20 +14,30 @@
 #include <petscvec.h>
 #include <petscviewer.h>
 
-
-PetscErrorCode formx(DM dm, Vec x) {
+PetscErrorCode formx(DM dm, Vec x, PetscInt M, PetscInt N) {
   PetscFunctionBeginUser;
-  
+  PetscInt startx, starty, ex, ey, nx, ny;
+  PetscScalar ***array;
+  PetscCall(DMDAGetCorners(dm, &startx, &starty, NULL, &nx, &ny, NULL));
+  PetscCall(DMDAVecGetArrayDOF(dm, x, &array));
+  for (ey = starty; ey < starty + ny; ey++) {
+    for (ex = startx; ex < startx + nx; ex++) {
+      if (ex < M - 1 && ey < N - 1) {
+        array[ey][ex][0] = 0.5;
+      }
+    }
+  }
+  PetscCall(DMDAVecRestoreArrayDOF(dm, x, &array));
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode formMatrix(DM dm, Mat A, Vec x, PetscInt M, PetscInt N) {
   PetscFunctionBeginUser;
   // PetscInt sizea, sizeb;
-  PetscReal value[8][8];
-  PetscReal coef;
+  PetscScalar value[8][8];
+  PetscScalar coef;
   PetscInt startx, starty, nx, ny, ex, ey;
-  PetscReal ***array;
+  PetscScalar ***array;
   MatStencil col[8];
   PetscCall(DMDAGetCorners(dm, &startx, &starty, NULL, &nx, &ny, NULL));
   for (ey = starty; ey < starty + ny; ey++) {
@@ -82,18 +92,18 @@ PetscErrorCode formMatrix(DM dm, Mat A, Vec x, PetscInt M, PetscInt N) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode formKE(PetscReal KE[8][8], PetscReal coef) {
+PetscErrorCode formKE(PetscScalar KE[8][8], PetscScalar coef) {
   PetscFunctionBeginUser;
   PetscInt i, j;
-  PetscReal nu = 0.3, factor = coef / (1 - nu * nu);
-  PetscReal k[8] = {1.0 / 2.0 - nu / 6.0,
-                    1.0 / 8.0 + nu / 8.0,
-                    -1.0 / 4.0 - nu / 12.0,
-                    -1.0 / 8.0 + 3.0 * nu / 8.0,
-                    -1.0 / 4.0 + nu / 12.0,
-                    -1.0 / 8.0 - nu / 8.0,
-                    nu / 6.0,
-                    1.0 / 8.0 - 3.0 * nu / 8.0};
+  PetscScalar nu = 0.3, factor = coef / (1 - nu * nu);
+  PetscScalar k[8] = {1.0 / 2.0 - nu / 6.0,
+                      1.0 / 8.0 + nu / 8.0,
+                      -1.0 / 4.0 - nu / 12.0,
+                      -1.0 / 8.0 + 3.0 * nu / 8.0,
+                      -1.0 / 4.0 + nu / 12.0,
+                      -1.0 / 8.0 - nu / 8.0,
+                      nu / 6.0,
+                      1.0 / 8.0 - 3.0 * nu / 8.0};
   for (i = 0; i < 8; i++) {
     KE[i][i] = factor * k[0];
   }
@@ -126,7 +136,7 @@ PetscErrorCode formKE(PetscReal KE[8][8], PetscReal coef) {
 
 PetscErrorCode formRHS(DM dm, Vec rhs, PetscInt N) {
   PetscFunctionBeginUser;
-  PetscReal ***array;
+  PetscScalar ***array;
   PetscInt startx, starty, nx, ny, ex, ey;
   PetscCall(DMDAGetCorners(dm, &startx, &starty, NULL, &nx, &ny, NULL));
 
@@ -148,14 +158,14 @@ PetscErrorCode formRHS(DM dm, Vec rhs, PetscInt N) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode computeCost(DM dm, PetscReal *cost, Vec u, Vec dc, Vec x,
+PetscErrorCode computeCost(DM dm, PetscScalar *cost, Vec u, Vec dc, Vec x,
                            PetscInt M, PetscInt N) {
   PetscFunctionBeginUser;
   PetscInt startx, starty, nx, ny, ex, ey, i, j;
-  PetscReal value[8][8];
-  PetscReal ***array, ***arraydc, ***arrayx;
-  PetscReal Ue[8];
-  PetscReal v;
+  PetscScalar value[8][8];
+  PetscScalar ***array, ***arraydc, ***arrayx;
+  PetscScalar Ue[8];
+  PetscScalar v;
   Vec localu;
   formKE(value, 1);
   PetscCall(DMDAGetCorners(dm, &startx, &starty, NULL, &nx, &ny, NULL));
@@ -166,7 +176,7 @@ PetscErrorCode computeCost(DM dm, PetscReal *cost, Vec u, Vec dc, Vec x,
   PetscCall(DMDAVecGetArrayDOF(dm, localu, &array));
   PetscCall(DMDAVecGetArrayDOF(dm, x, &arrayx));
   PetscCall(DMDAVecGetArrayDOF(dm, dc, &arraydc));
-  PetscReal localcost = 0;
+  PetscScalar localcost = 0;
   // PetscCall(
   //     PetscPrintf(PETSC_COMM_SELF, "cost before calculating: %f\n", *cost));
   for (ey = starty; ey < starty + ny; ++ey) {
@@ -205,7 +215,7 @@ PetscErrorCode computeCost(DM dm, PetscReal *cost, Vec u, Vec dc, Vec x,
 PetscErrorCode filter(DM dm, Vec dc, Vec x, PetscInt M, PetscInt N) {
   PetscFunctionBeginUser;
   PetscInt startx, starty, nx, ny, ex, ey;
-  PetscReal ***arraydc, ***arrayx, ***arraydcn;
+  PetscScalar ***arraydc, ***arrayx, ***arraydcn;
   Vec dcn, localx, localdcn, localdc;
   PetscCall(DMCreateGlobalVector(dm, &dcn));
   PetscCall(DMDAGetCorners(dm, &startx, &starty, NULL, &nx, &ny, NULL));
@@ -250,19 +260,21 @@ PetscErrorCode filter(DM dm, Vec dc, Vec x, PetscInt M, PetscInt N) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode optimalCriteria(DM dm, Vec x, Vec dc, PetscReal volfrac,
+PetscErrorCode optimalCriteria(DM dm, Vec x, Vec dc, PetscScalar volfrac,
                                PetscInt M, PetscInt N) {
   PetscFunctionBeginUser;
-  PetscReal l1 = 0, l2 = 100000, move = 0.2, lmid;
+  PetscScalar l1 = 0, l2 = 100000, move = 0.2, lmid;
   PetscInt startx, starty, nx, ny, ex, ey;
-  PetscReal ***arraydc, ***arrayx;
-  PetscReal sum, allsum;
+  PetscScalar ***arraydc, ***arrayx;
+  PetscScalar sum;
+
+  PetscCall(DMDAGetCorners(dm, &startx, &starty, NULL, &nx, &ny, NULL));
+
   PetscCall(DMDAVecGetArrayDOF(dm, dc, &arraydc));
   PetscCall(DMDAVecGetArrayDOF(dm, x, &arrayx));
-  PetscCall(DMDAGetCorners(dm, &startx, &starty, NULL, &nx, &ny, NULL));
+
   while (l2 - l1 > 1e-4) {
     lmid = (l1 + l2) / 2;
-    sum = 0.0;
     for (ey = starty; ey < starty + ny; ++ey) {
       for (ex = startx; ex < startx + nx; ++ex) {
         if (ex < M - 1 && ey < N - 1) {
@@ -275,25 +287,20 @@ PetscErrorCode optimalCriteria(DM dm, Vec x, Vec dc, PetscReal volfrac,
           } else {
             arrayx[ey][ex][0] = -arrayx[ey][ex][0] * arraydc[ey][ex][0] / lmid;
           }
-          sum += arrayx[ey][ex][0];
         }
       }
     }
-    // PetscCall(MPI_Comm_rank(PETSC_COMM_WORLD, &rank));
-    // PetscCall(PetscPrintf(PETSC_COMM_SELF, "rank: %d\n", rank));
-    PetscCallMPI(
-        MPI_Allreduce(&sum, &allsum, 1, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD));
+    PetscCall(DMDAVecRestoreArrayDOF(dm, dc, &arraydc));
+    PetscCall(DMDAVecRestoreArrayDOF(dm, x, &arrayx));
+    PetscCall(VecSum(x, &sum));
 
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "allsum: %f\n", allsum));
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "lambda: %f\n", lmid));
-    if (allsum > volfrac) {
+    if (sum > volfrac) {
       l1 = lmid;
     } else {
       l2 = lmid;
     }
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "lambda: %f\n", lmid));
   }
 
-  PetscCall(DMDAVecRestoreArrayDOF(dm, dc, &arraydc));
-  PetscCall(DMDAVecRestoreArrayDOF(dm, x, &arrayx));
   PetscFunctionReturn(0);
 }
