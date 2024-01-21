@@ -41,7 +41,7 @@ int main(int argc, char **args) {
   PetscCall(computeCost(dm, &cost, u, dc, x, M, N));
   PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
 
-  // PetscCall(optimalCriteria(dm, x, dc, volfrac, M, N));
+  PetscCall(optimalCriteria(dm, x, dc, volfrac, M, N));
 
 
   PetscCall(PetscFinalize());

@@ -38,7 +38,7 @@ int main(int argc, char **args) {
   PetscCall(DMCreateGlobalVector(dm, &b));
   PetscCall(DMCreateGlobalVector(dm, &u));
   PetscCall(DMCreateGlobalVector(dm, &dc));
-  PetscCall(formx(dm, x));
+  PetscCall(formx(dm, x, M, N));
   PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
 
   PetscCall(formRHS(dm, b, N));

@@ -1,6 +1,5 @@
 #include "func.h"
 #include "mpi.h"
-#include <math.h>
 #include <petscdm.h>
 #include <petscdmda.h>
 #include <petscdmdatypes.h>
@@ -275,23 +274,26 @@ PetscErrorCode optimalCriteria(DM dm, Vec x, Vec dc, PetscScalar volfrac,
 
   while (l2 - l1 > 1e-4) {
     lmid = (l1 + l2) / 2;
+
     for (ey = starty; ey < starty + ny; ++ey) {
       for (ex = startx; ex < startx + nx; ++ex) {
         if (ex < M - 1 && ey < N - 1) {
           if (-arrayx[ey][ex][0] * arraydc[ey][ex][0] / lmid <
-              fmax(0.001, arrayx[ey][ex][0] - move)) {
-            arrayx[ey][ex][0] = fmax(0.001, arrayx[ey][ex][0] - move);
+              PetscMax(0.001, arrayx[ey][ex][0] - move)) {
+            arrayx[ey][ex][0] = PetscMax(0.001, arrayx[ey][ex][0] - move);
           } else if (-arrayx[ey][ex][0] * arraydc[ey][ex][0] / lmid >
-                     fmin(1, arrayx[ey][ex][0] + move)) {
-            arrayx[ey][ex][0] = fmin(1, arrayx[ey][ex][0] + move);
+                     PetscMin(1, arrayx[ey][ex][0] + move)) {
+            arrayx[ey][ex][0] = PetscMin(1, arrayx[ey][ex][0] + move);
           } else {
             arrayx[ey][ex][0] = -arrayx[ey][ex][0] * arraydc[ey][ex][0] / lmid;
           }
         }
       }
     }
+
     PetscCall(DMDAVecRestoreArrayDOF(dm, dc, &arraydc));
     PetscCall(DMDAVecRestoreArrayDOF(dm, x, &arrayx));
+
     PetscCall(VecSum(x, &sum));
 
     if (sum > volfrac) {
