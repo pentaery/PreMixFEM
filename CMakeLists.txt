@@ -49,10 +49,9 @@ endif (CXX_FLAGS)
 #  this must appear AFTER the compilers are set
 project(PreMixFEM)
 set(SOURCES 
-#  src/PreMixFEM_3D.c
-#  src/Expe_frac.c
-  src/topopt/demo.c
-  src/topopt/func.c
+ src/PreMixFEM_3D.c
+ src/topopt.c
+ src/optimization.c
 )
 SET(OUTPUT_NAME test)
 add_executable(${OUTPUT_NAME} ${SOURCES})
