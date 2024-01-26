@@ -37,7 +37,7 @@ int main(int argc, char **args) {
   PetscCall(DMCreateGlobalVector(dm, &b));
   PetscCall(DMCreateGlobalVector(dm, &u));
   PetscCall(DMCreateGlobalVector(dm, &dc));
-  PetscCall(formx(dm, x, M, N));
+  PetscCall(formx(dm, x));
   PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
 
   PetscCall(formRHS(dm, b, N));
@@ -45,13 +45,13 @@ int main(int argc, char **args) {
   while (change > 0.01) {
     loop += 1;
     PetscCall(VecCopy(x, xold));
-    PetscCall(formMatrix(dm, A, x, M, N));
+    PetscCall(formMatrix(dm, A, x));
     PetscCall(KSPSetOperators(ksp, A, A));
     PetscCall(KSPSetFromOptions(ksp));
     PetscCall(KSPSolve(ksp, b, u));
-    PetscCall(computeCost(dm, &cost, u, dc, x, M, N));
+    PetscCall(computeCost(dm, &cost, u, dc, x));
     // PetscCall(filter(dm, dc, x, M, N));
-    PetscCall(optimalCriteria(dm, x, dc, volfrac, M, N));
+    PetscCall(optimalCriteria(dm, x, dc, volfrac));
     // PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
     PetscCall(VecAXPY(xold, -1, x));
 

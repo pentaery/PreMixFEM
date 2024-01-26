@@ -265,7 +265,7 @@ PetscErrorCode optimalCriteria(DM dm, Vec x, Vec dc, PetscScalar volfrac,
   PetscScalar l1 = 0, l2 = 100000, move = 0.2, lmid;
   PetscInt startx, starty, nx, ny, ex, ey;
   PetscScalar ***arraydc, ***arrayx;
-  PetscScalar sum;
+  PetscScalar sum=0;
 
   PetscCall(DMDAGetCorners(dm, &startx, &starty, NULL, &nx, &ny, NULL));
 
