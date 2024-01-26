@@ -13,16 +13,17 @@
 #include <petscvec.h>
 #include <petscviewer.h>
 
-PetscErrorCode formx(DM dm, Vec x, PetscInt M, PetscInt N) {
+PetscErrorCode formx(DM dm, Vec x) {
   PetscFunctionBeginUser;
-  PetscInt startx, starty, ex, ey, nx, ny;
-  PetscScalar ***array;
-  PetscCall(DMDAGetCorners(dm, &startx, &starty, NULL, &nx, &ny, NULL));
+  PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
+  PetscScalar ****array;
+  PetscCall(DMDAGetCorners(dm, &startx, &starty, &startz, &nx, &ny, &nz));
   PetscCall(DMDAVecGetArrayDOF(dm, x, &array));
-  for (ey = starty; ey < starty + ny; ey++) {
-    for (ex = startx; ex < startx + nx; ex++) {
-      if (ex < M - 1 && ey < N - 1) {
-        array[ey][ex][0] = 0.5;
+  for (ez = startz; ez < startz + nz; ++ez) {
+    for (ey = starty; ey < starty + ny; ++ey) {
+      for (ex = startx; ex < startx + nx; ++ex) {
+          array[ez][ey][ex][0] = 0.5;
+        
       }
     }
   }
@@ -30,41 +31,45 @@ PetscErrorCode formx(DM dm, Vec x, PetscInt M, PetscInt N) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode formMatrix(DM dm, Mat A, Vec x, PetscInt M, PetscInt N) {
+PetscErrorCode(formkappa(DM dm, Vec x, Vec kappa)) {
+  PetscFunctionBeginUser;
+  PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
+  PetscScalar ***arrayx, ***arraykappa;
+  PetscCall(DMDAGetCorners(dm, &startx, &starty, &startz, &nx, &ny, &nz));
+  PetscCall(DMDAVecGetArray(dm, x, &arrayx));
+  PetscCall(DMDAVecGetArray(dm, kappa, &arraykappa));
+  for (ez = startz; ez < startz + nz; ++ez) {
+    for (ey = starty; ey < starty + ny; ++ey) {
+      for (ex = startx; ex < startx + nx; ++ex) {
+        arraykappa[ez][ey][ex] = (1-1e-6)*PetscPowScalar(arrayx[ez][ey][ex], 3)+1e-6;
+      }
+    }
+  }
+  PetscCall(DMDAVecRestoreArray(dm, x, &arrayx));
+  PetscCall(DMDAVecRestoreArray(dm, kappa, &arraykappa));
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode formMatrix(DM dm, Mat A, Vec x) {
   PetscFunctionBeginUser;
   // PetscInt sizea, sizeb;
-  PetscScalar value[8][8];
+  PetscScalar value[2][2];
   PetscScalar coef;
   PetscInt startx, starty, nx, ny, ex, ey;
   PetscScalar ***array;
-  MatStencil col[8];
+  MatStencil col[2];
   PetscCall(DMDAGetCorners(dm, &startx, &starty, NULL, &nx, &ny, NULL));
   for (ey = starty; ey < starty + ny; ey++) {
     for (ex = startx; ex < startx + nx; ex++) {
-      if (ex < M - 1 && ey < N - 1) {
         col[0] = (MatStencil){.i = ex, .j = ey, .c = 0};
         col[1] = (MatStencil){.i = ex, .j = ey, .c = 1};
-        col[2] = (MatStencil){.i = ex + 1, .j = ey, .c = 0};
-        col[3] = (MatStencil){.i = ex + 1, .j = ey, .c = 1};
-        col[4] = (MatStencil){.i = ex, .j = ey + 1, .c = 0};
-        col[5] = (MatStencil){.i = ex, .j = ey + 1, .c = 1};
-        col[6] = (MatStencil){.i = ex + 1, .j = ey + 1, .c = 0};
-        col[7] = (MatStencil){.i = ex + 1, .j = ey + 1, .c = 1};
-        // row[0] = (MatStencil){.i = ex, .j = ey, .c = 0};
-        // row[1] = (MatStencil){.i = ex, .j = ey, .c = 1};
-        // row[2] = (MatStencil){.i = ex + 1, .j = ey, .c = 0};
-        // row[3] = (MatStencil){.i = ex + 1, .j = ey, .c = 1};
-        // row[4] = (MatStencil){.i = ex, .j = ey + 1, .c = 0};
-        // row[5] = (MatStencil){.i = ex, .j = ey + 1, .c = 1};
-        // row[6] = (MatStencil){.i = ex + 1, .j = ey + 1, .c = 0};
-        // row[7] = (MatStencil){.i = ex + 1, .j = ey + 1, .c = 1};
         PetscCall(DMDAVecGetArrayDOF(dm, x, &array));
         coef = array[ey][ex][0] * array[ey][ex][0] * array[ey][ex][0];
         PetscCall(DMDAVecRestoreArrayDOF(dm, x, &array));
         formKE(value, coef);
         PetscCall(
             MatSetValuesStencil(A, 8, col, 8, col, &value[0][0], ADD_VALUES));
-      }
+      
     }
   }
 

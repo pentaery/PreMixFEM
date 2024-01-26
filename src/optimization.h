@@ -11,12 +11,11 @@
 #include <petscvec.h>
 #include <petscviewer.h>
 
-PetscErrorCode(formx(DM dm, Vec x, PetscInt M, PetscInt N));
+PetscErrorCode(formx(DM dm, Vec x));
 PetscErrorCode formKE(PetscScalar KE[8][8], PetscScalar coef);
-PetscErrorCode formMatrix(DM dm, Mat A, Vec x, PetscInt M, PetscInt N);
+PetscErrorCode formMatrix(DM dm, Mat A, Vec x);
 PetscErrorCode formRHS(DM dm, Vec rhs, PetscInt N);
-PetscErrorCode computeCost(DM dm, PetscScalar *cost, Vec u, Vec dc, Vec x,
-                           PetscInt M, PetscInt N);
-PetscErrorCode filter(DM dm, Vec dc, Vec x, PetscInt M, PetscInt N);
-PetscErrorCode optimalCriteria(DM dm, Vec x, Vec dc, PetscScalar volfrac,
-                               PetscInt M, PetscInt N);
+PetscErrorCode computeCost(DM dm, PetscScalar *cost, Vec u, Vec dc, Vec x);
+PetscErrorCode filter(DM dm, Vec dc, Vec x);
+PetscErrorCode optimalCriteria(DM dm, Vec x, Vec dc, PetscScalar volfrac);
+PetscErrorCode(formkappa(DM dm, Vec x, Vec kappa));
