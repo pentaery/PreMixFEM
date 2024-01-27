@@ -31,7 +31,7 @@
 
 typedef struct preconditioner_context {
   DM dm;
-  Vec kappa[DIM], *ms_bases_c, *ms_bases_cc;
+  Vec kappa[DIM], x, *ms_bases_c, *ms_bases_cc;
   KSP *ksp_lv1, ksp_lv2, ksp_lv3;
   PetscInt *coarse_startx, *coarse_lenx, *coarse_starty, *coarse_leny,
       *coarse_startz, *coarse_lenz;
@@ -39,13 +39,14 @@ typedef struct preconditioner_context {
   PetscInt max_eigen_num_lv1, *eigen_num_lv1;
   PetscInt max_eigen_num_lv2, eigen_num_lv2;
   PetscScalar H_x, H_y, H_z, L, W, H;
-  //总的长宽高，网格的长宽高
+  // 总的长宽高，网格的长宽高
   PetscScalar *eigen_max_lv1, *eigen_min_lv1, eigen_bd_lv1, eigen_max_lv2,
       eigen_min_lv2, eigen_bd_lv2;
   PetscScalar t_stages[MAX_LOG_STATES];
   PetscBool use_W_cycle, no_shift_A_cc, use_full_Cholesky_lv1, use_2level;
   PetscInt M, N, P;
-  //网格数
+  // 网格数
+  PetscInt cr;
 } PCCtx;
 
 PetscErrorCode PC_init(PCCtx *s_ctx, PetscScalar *dom, PetscInt *mesh);

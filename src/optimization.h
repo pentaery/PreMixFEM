@@ -1,4 +1,5 @@
 #pragma once
+#include <PreMixFEM_3D.h>
 #include <petscdm.h>
 #include <petscdmda.h>
 #include <petscdmdatypes.h>
@@ -11,9 +12,9 @@
 #include <petscvec.h>
 #include <petscviewer.h>
 
-PetscErrorCode formx(DM dm, Vec x);
-PetscErrorCode formkappa(DM dm, Vec x, Vec kappa);
-PetscErrorCode formMatrix(DM dm, Mat A, Vec kappa);
+PetscErrorCode formx(PCCtx *s_ctx);
+PetscErrorCode formkappa(PCCtx *s_ctx);
+PetscErrorCode formMatrix(PCCtx *s_ctx, Mat A);
 PetscErrorCode formRHS(DM dm, Vec rhs, PetscInt N);
 PetscErrorCode computeCost(DM dm, PetscScalar *cost, Vec u, Vec dc, Vec x);
 PetscErrorCode filter(DM dm, Vec dc, Vec x);

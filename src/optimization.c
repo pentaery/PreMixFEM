@@ -1,4 +1,5 @@
 #include "optimization.h"
+#include "PreMixFEM_3D.h"
 #include "mpi.h"
 #include <petscdm.h>
 #include <petscdmda.h>
@@ -13,12 +14,13 @@
 #include <petscvec.h>
 #include <petscviewer.h>
 
-PetscErrorCode formx(DM dm, Vec x) {
+PetscErrorCode formx(PCCtx *s_ctx) {
   PetscFunctionBeginUser;
   PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
   PetscScalar ***array;
-  PetscCall(DMDAGetCorners(dm, &startx, &starty, &startz, &nx, &ny, &nz));
-  PetscCall(DMDAVecGetArray(dm, x, &array));
+  PetscCall(
+      DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
+  PetscCall(DMDAVecGetArray(s_ctx->dm, s_ctx->x, &array));
   for (ez = startz; ez < startz + nz; ++ez) {
     for (ey = starty; ey < starty + ny; ++ey) {
       for (ex = startx; ex < startx + nx; ++ex) {
@@ -26,52 +28,120 @@ PetscErrorCode formx(DM dm, Vec x) {
       }
     }
   }
-  PetscCall(DMDAVecRestoreArray(dm, x, &array));
+  PetscCall(DMDAVecRestoreArray(s_ctx->dm, s_ctx->x, &array));
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode(formkappa(DM dm, Vec x, Vec kappa)) {
+PetscErrorCode(formkappa(PCCtx *s_ctx)) {
   PetscFunctionBeginUser;
-  PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
-  PetscScalar ***arrayx, ***arraykappa;
-  PetscCall(DMDAGetCorners(dm, &startx, &starty, &startz, &nx, &ny, &nz));
-  PetscCall(DMDAVecGetArray(dm, x, &arrayx));
-  PetscCall(DMDAVecGetArray(dm, kappa, &arraykappa));
+  PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez, i;
+  PetscScalar ***arrayx, ***arraykappa[DIM];
+  PetscCall(
+      DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
+  PetscCall(DMDAVecGetArray(s_ctx->dm, s_ctx->x, &arrayx));
+  for (i = 0; i < DIM; ++i) {
+    PetscCall(DMDAVecGetArray(s_ctx->dm, s_ctx->kappa[i], &arraykappa[i]));
+  }
   for (ez = startz; ez < startz + nz; ++ez) {
     for (ey = starty; ey < starty + ny; ++ey) {
       for (ex = startx; ex < startx + nx; ++ex) {
-        arraykappa[ez][ey][ex] =
-            (1 - 1e-6) * PetscPowScalar(arrayx[ez][ey][ex], 3) + 1e-6;
+        for (i = 0; i < DIM; ++i) {
+          arraykappa[i][ez][ey][ex] =
+              (1 - PetscPowScalar(10, -s_ctx->cr)) *
+                  PetscPowScalar(arrayx[ez][ey][ex], 3) +
+              PetscPowScalar(10, -s_ctx->cr);
+        }
       }
     }
   }
-  PetscCall(DMDAVecRestoreArray(dm, x, &arrayx));
-  PetscCall(DMDAVecRestoreArray(dm, kappa, &arraykappa));
+  PetscCall(DMDAVecRestoreArray(s_ctx->dm, s_ctx->x, &arrayx));
+  for (i = 0; i < DIM; ++i) {
+    PetscCall(DMDAVecRestoreArray(s_ctx->dm, s_ctx->kappa[i], &arraykappa[i]));
+  }
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode formMatrix(DM dm, Mat A, Vec kappa) {
+PetscErrorCode formMatrix(PCCtx *s_ctx, Mat A) {
   PetscFunctionBeginUser;
-  PetscScalar value[2][2];
-  PetscInt startx, starty, nx, ny, ex, ey;
-  PetscScalar ***array;
-  MatStencil col[2];
-  PetscCall(DMDAGetCorners(dm, &startx, &starty, NULL, &nx, &ny, NULL));
-  for (ey = starty; ey < starty + ny; ey++) {
-    for (ex = startx; ex < startx + nx; ex++) {
-      col[0] = (MatStencil){.i = ex, .j = ey, .c = 0};
-      col[1] = (MatStencil){.i = ex, .j = ey, .c = 1};
-      PetscCall(DMDAVecGetArrayDOF(dm, x, &array));
-      coef = array[ey][ex][0] * array[ey][ex][0] * array[ey][ex][0];
-      PetscCall(DMDAVecRestoreArrayDOF(dm, x, &array));
-      PetscCall(
-          MatSetValuesStencil(A, 8, col, 8, col, &value[0][0], ADD_VALUES));
-    }
-  }
 
+  Vec kappa_loc[DIM]; // Destroy later.
+  PetscInt proc_startx, proc_starty, proc_startz, proc_nx, proc_ny, proc_nz, ex,
+      ey, ez, i;
+  // 赋值迭代变量
+  PetscScalar ***arr_kappa_3d[DIM], val_A[2][2], meas_elem, meas_face_yz,
+      meas_face_zx, meas_face_xy, avg_kappa_e;
+  MatStencil row[2], col[2];
+
+  for (i = 0; i < DIM; ++i) {
+    PetscCall(DMGetLocalVector(s_ctx->dm, &kappa_loc[i]));
+    PetscCall(DMGlobalToLocal(s_ctx->dm, s_ctx->kappa[i], INSERT_VALUES,
+                              kappa_loc[i]));
+    PetscCall(DMDAVecGetArrayRead(s_ctx->dm, kappa_loc[i], &arr_kappa_3d[i]));
+  }
+  // 将每个进程中的kappa取出来
+
+  meas_elem = s_ctx->H_x * s_ctx->H_y * s_ctx->H_z;
+  meas_face_yz = s_ctx->H_y * s_ctx->H_z;
+  meas_face_zx = s_ctx->H_z * s_ctx->H_x;
+  meas_face_xy = s_ctx->H_x * s_ctx->H_y;
+  // 计算网格体积和面积
+
+  PetscCall(DMDAGetCorners(s_ctx->dm, &proc_startx, &proc_starty, &proc_startz,
+                           &proc_nx, &proc_ny, &proc_nz));
+  for (ez = proc_startz; ez < proc_startz + proc_nz; ++ez)
+    for (ey = proc_starty; ey < proc_starty + proc_ny; ++ey)
+      for (ex = proc_startx; ex < proc_startx + proc_nx; ++ex) {
+        if (ex >= 1) {
+          row[0] = (MatStencil){.i = ex - 1, .j = ey, .k = ez};
+          row[1] = (MatStencil){.i = ex, .j = ey, .k = ez};
+          col[0] = (MatStencil){.i = ex - 1, .j = ey, .k = ez};
+          col[1] = (MatStencil){.i = ex, .j = ey, .k = ez};
+          avg_kappa_e = 2.0 / (1.0 / arr_kappa_3d[0][ez][ey][ex - 1] +
+                               1.0 / arr_kappa_3d[0][ez][ey][ex]);
+          val_A[0][0] = meas_face_yz * meas_face_yz / meas_elem * avg_kappa_e;
+          val_A[0][1] = -meas_face_yz * meas_face_yz / meas_elem * avg_kappa_e;
+          val_A[1][0] = -meas_face_yz * meas_face_yz / meas_elem * avg_kappa_e;
+          val_A[1][1] = meas_face_yz * meas_face_yz / meas_elem * avg_kappa_e;
+          PetscCall(MatSetValuesStencil(A, 2, &row[0], 2, &col[0], &val_A[0][0],
+                                        ADD_VALUES));
+        }
+        if (ey >= 1) {
+          row[0] = (MatStencil){.i = ex, .j = ey - 1, .k = ez};
+          row[1] = (MatStencil){.i = ex, .j = ey, .k = ez};
+          col[0] = (MatStencil){.i = ex, .j = ey - 1, .k = ez};
+          col[1] = (MatStencil){.i = ex, .j = ey, .k = ez};
+          avg_kappa_e = 2.0 / (1.0 / arr_kappa_3d[1][ez][ey - 1][ex] +
+                               1.0 / arr_kappa_3d[1][ez][ey][ex]);
+          val_A[0][0] = meas_face_zx * meas_face_zx / meas_elem * avg_kappa_e;
+          val_A[0][1] = -meas_face_zx * meas_face_zx / meas_elem * avg_kappa_e;
+          val_A[1][0] = -meas_face_zx * meas_face_zx / meas_elem * avg_kappa_e;
+          val_A[1][1] = meas_face_zx * meas_face_zx / meas_elem * avg_kappa_e;
+          PetscCall(MatSetValuesStencil(A, 2, &row[0], 2, &col[0], &val_A[0][0],
+                                        ADD_VALUES));
+        }
+        if (ez >= 1) {
+          row[0] = (MatStencil){.i = ex, .j = ey, .k = ez - 1};
+          row[1] = (MatStencil){.i = ex, .j = ey, .k = ez};
+          col[0] = (MatStencil){.i = ex, .j = ey, .k = ez - 1};
+          col[1] = (MatStencil){.i = ex, .j = ey, .k = ez};
+          avg_kappa_e = 2.0 / (1.0 / arr_kappa_3d[2][ez - 1][ey][ex] +
+                               1.0 / arr_kappa_3d[2][ez][ey][ex]);
+          val_A[0][0] = meas_face_xy * meas_face_xy / meas_elem * avg_kappa_e;
+          val_A[0][1] = -meas_face_xy * meas_face_xy / meas_elem * avg_kappa_e;
+          val_A[1][0] = -meas_face_xy * meas_face_xy / meas_elem * avg_kappa_e;
+          val_A[1][1] = meas_face_xy * meas_face_xy / meas_elem * avg_kappa_e;
+          PetscCall(MatSetValuesStencil(A, 2, &row[0], 2, &col[0], &val_A[0][0],
+                                        ADD_VALUES));
+        }
+      }
+  // A的赋值
   PetscCall(MatAssemblyBegin(A, MAT_FINAL_ASSEMBLY));
   PetscCall(MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY));
-
+  for (i = 0; i < DIM; ++i) {
+    PetscCall(
+        DMDAVecRestoreArrayRead(s_ctx->dm, kappa_loc[i], &arr_kappa_3d[i]));
+    PetscCall(DMRestoreLocalVector(s_ctx->dm, &kappa_loc[i]));
+  }
   PetscFunctionReturn(0);
 }
 

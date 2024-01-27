@@ -2396,6 +2396,8 @@ PetscErrorCode PC_init(PCCtx *s_ctx, PetscScalar *dom, PetscInt *mesh) {
   s_ctx->N = mesh[1];
   s_ctx->P = mesh[2];
 
+  s_ctx->cr = 6;
+
   s_ctx->smoothing_iters_lv1 = 1;
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-si_lv1",
                                &s_ctx->smoothing_iters_lv1, NULL));
@@ -2477,6 +2479,10 @@ PetscErrorCode PC_init(PCCtx *s_ctx, PetscScalar *dom, PetscInt *mesh) {
   // If oversampling=1, DMDA has a ghost point width=1 now, and this will change
   // the construction of A_i in level-1.
   PetscCall(DMSetUp(s_ctx->dm));
+
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &s_ctx->x));
+  for (PetscInt i = 0; i < DIM; ++i)
+    PetscCall(DMCreateGlobalVector(s_ctx->dm, &s_ctx->kappa[i]));
 
   PetscInt m, n, p, coarse_elem_num;
   // Users should be responsible for constructing kappa.
