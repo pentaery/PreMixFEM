@@ -103,7 +103,7 @@ PetscErrorCode formMatrix(PCCtx *s_ctx, Mat A) {
           val_A[1][0] = -meas_face_yz * meas_face_yz / meas_elem * avg_kappa_e;
           val_A[1][1] = meas_face_yz * meas_face_yz / meas_elem * avg_kappa_e;
           PetscCall(MatSetValuesStencil(A, 2, &row[0], 2, &col[0], &val_A[0][0],
-                                        ADD_VALUES));
+                                        ADD_VALUES));    
         }
         if (ey >= 1) {
           row[0] = (MatStencil){.i = ex, .j = ey - 1, .k = ez};
@@ -133,6 +133,20 @@ PetscErrorCode formMatrix(PCCtx *s_ctx, Mat A) {
           PetscCall(MatSetValuesStencil(A, 2, &row[0], 2, &col[0], &val_A[0][0],
                                         ADD_VALUES));
         }
+        if (ex >= PetscFloorReal((0.5 - s_ctx->lengthportion / 2) * s_ctx->M) &&
+            ex <= PetscCeilReal((0.5 + s_ctx->lengthportion / 2) * s_ctx->M) &&
+            ey >= PetscFloorReal((0.5 - s_ctx->widthportion / 2) * s_ctx->M) &&
+            ey <= PetscCeilReal((0.5 + s_ctx->widthportion / 2) * s_ctx->M) &&
+            ez == 0) {
+          col[0] = (MatStencil){.i = ex, .j = ey, .k = ez};
+          row[0] = (MatStencil){.i = ex, .j = ey, .k = ez};
+          val_A[0][0] = 2 * meas_face_xy * meas_face_xy / meas_elem *
+                        arr_kappa_3d[2][ez][ey][ex];
+          PetscCall(MatSetValuesStencil(A, 1, &col[0], 1, &row[0], &val_A[0][0],
+                                        ADD_VALUES));
+          // PetscCall(PetscPrintf(PETSC_COMM_SELF, "ex: %d, ey: %d, ez: %d\n", ex,
+          //                       ey, ez));
+        }
       }
   // A的赋值
   PetscCall(MatAssemblyBegin(A, MAT_FINAL_ASSEMBLY));
@@ -141,31 +155,38 @@ PetscErrorCode formMatrix(PCCtx *s_ctx, Mat A) {
     PetscCall(
         DMDAVecRestoreArrayRead(s_ctx->dm, kappa_loc[i], &arr_kappa_3d[i]));
     PetscCall(DMRestoreLocalVector(s_ctx->dm, &kappa_loc[i]));
+    PetscCall(VecDestroy(&kappa_loc[i]));
   }
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode formRHS(DM dm, Vec rhs, PetscInt N) {
+PetscErrorCode formRHS(PCCtx *s_ctx, Vec rhs) {
   PetscFunctionBeginUser;
-  PetscScalar ***array;
-  PetscInt startx, starty, nx, ny, ex, ey;
-  PetscCall(DMDAGetCorners(dm, &startx, &starty, NULL, &nx, &ny, NULL));
+  PetscScalar ***array, ***arraykappa;
+  PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
+  PetscCall(
+      DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
 
   // Set RHS
-  PetscCall(DMDAVecGetArrayDOF(dm, rhs, &array));
-  for (ey = starty; ey < starty + ny; ey++) {
-    for (ex = startx; ex < startx + nx; ex++) {
-      if (ex == 0) {
-        array[ey][ex][0] = 0;
-        if (ey == N - 1) {
-          array[ey][ex][1] = -1;
+  PetscCall(DMDAVecGetArray(s_ctx->dm, s_ctx->kappa[2], &arraykappa));
+  PetscCall(DMDAVecGetArray(s_ctx->dm, rhs, &array));
+  for (ez = startz; ez < startz + nz; ++ez)
+    for (ey = starty; ey < starty + ny; ey++) {
+      for (ex = startx; ex < startx + nx; ex++) {
+        if (ex >= PetscFloorReal((0.5 - s_ctx->lengthportion / 2) * s_ctx->M) &&
+            ex <= PetscCeilReal((0.5 + s_ctx->lengthportion / 2) * s_ctx->M) &&
+            ey >= PetscFloorReal((0.5 - s_ctx->widthportion / 2) * s_ctx->M) &&
+            ey <= PetscCeilReal((0.5 + s_ctx->widthportion / 2) * s_ctx->M) &&
+            ez == 0) {
+          array[ez][ey][ex] = 2 * arraykappa[ez][ey][ex] * 1e3 * s_ctx->H_x *
+                              s_ctx->H_y / s_ctx->H_z;
         }
       }
     }
-  }
 
-  PetscCall(DMDAVecRestoreArrayDOF(dm, rhs, &array));
-  // PetscCall(VecView(rhs, PETSC_VIEWER_STDOUT_WORLD));
+  PetscCall(DMDAVecRestoreArray(s_ctx->dm, rhs, &array));
+  PetscCall(DMDAVecRestoreArray(s_ctx->dm, s_ctx->kappa[2], &arraykappa));
+
   PetscFunctionReturn(0);
 }
 

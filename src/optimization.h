@@ -15,7 +15,7 @@
 PetscErrorCode formx(PCCtx *s_ctx);
 PetscErrorCode formkappa(PCCtx *s_ctx);
 PetscErrorCode formMatrix(PCCtx *s_ctx, Mat A);
-PetscErrorCode formRHS(DM dm, Vec rhs, PetscInt N);
+PetscErrorCode formRHS(PCCtx *s_ctx, Vec rhs);
 PetscErrorCode computeCost(DM dm, PetscScalar *cost, Vec u, Vec dc, Vec x);
 PetscErrorCode filter(DM dm, Vec dc, Vec x);
 PetscErrorCode optimalCriteria(DM dm, Vec x, Vec dc, PetscScalar volfrac);
