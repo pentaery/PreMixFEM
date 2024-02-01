@@ -16,7 +16,7 @@ int main(int argc, char **argv) {
   PetscCall(
       PetscInitialize(&argc, &argv, (char *)0, "Toplogical Optimiazation\n"));
   PCCtx test;
-  PetscInt mesh[3] = {64, 64, 64};
+  PetscInt mesh[3] = {3, 3, 3};
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
   Mat A;
   Vec rhs, u;
@@ -36,9 +36,7 @@ int main(int argc, char **argv) {
   PetscCall(KSPSetOperators(ksp, A, A));
   PetscCall(KSPSetFromOptions(ksp));
   PetscCall(KSPSolve(ksp, rhs, u));
-  // PetscCall(MatView(A, PETSC_VIEWER_STDOUT_WORLD));
-  // PetscCall(VecView(rhs, PETSC_VIEWER_STDOUT_WORLD));
-  PetscCall(VecView(u, PETSC_VIEWER_STDOUT_WORLD));
+
 
   PetscCall(MatDestroy(&A));
   PetscCall(VecDestroy(&rhs));
