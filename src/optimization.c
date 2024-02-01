@@ -14,13 +14,13 @@
 #include <petscvec.h>
 #include <petscviewer.h>
 
-PetscErrorCode formx(PCCtx *s_ctx) {
+PetscErrorCode formx(PCCtx *s_ctx, Vec x) {
   PetscFunctionBeginUser;
   PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
   PetscScalar ***array;
   PetscCall(
       DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
-  PetscCall(DMDAVecGetArray(s_ctx->dm, s_ctx->x, &array));
+  PetscCall(DMDAVecGetArray(s_ctx->dm, x, &array));
   for (ez = startz; ez < startz + nz; ++ez) {
     for (ey = starty; ey < starty + ny; ++ey) {
       for (ex = startx; ex < startx + nx; ++ex) {
@@ -28,7 +28,7 @@ PetscErrorCode formx(PCCtx *s_ctx) {
       }
     }
   }
-  PetscCall(DMDAVecRestoreArray(s_ctx->dm, s_ctx->x, &array));
+  PetscCall(DMDAVecRestoreArray(s_ctx->dm, x, &array));
   PetscFunctionReturn(0);
 }
 
@@ -191,58 +191,77 @@ PetscErrorCode formRHS(PCCtx *s_ctx, Vec rhs) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode computeCost(PCCtx *s_ctx, Vec t, Vec cost, Vec dc) {
+PetscErrorCode computeCost(PCCtx *s_ctx, Vec x, Vec t, Vec c, Vec dc) {
   PetscFunctionBeginUser;
   PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez, i;
-  PetscScalar value[8][8];
-  PetscScalar ***array, ***arraydc, ***arrayx, ***arr_kappa_3d[DIM];
-  PetscScalar Ue[8];
-  PetscScalar v;
-  Vec localu;
+  PetscScalar ***arrayt, ***arrayc, ***arraydc, ***arrayx, ***arr_kappa_3d[DIM];
+  Vec t_loc;
   Vec kappa_loc[DIM];
+
   PetscCall(
       DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
 
-  PetscCall(DMGetLocalVector(s_ctx->dm, &localu));
-  PetscCall(DMGlobalToLocal(s_ctx->dm, t, INSERT_VALUES, localu));
-  for (i = 0; i < DIM; ++i) {
-    PetscCall(DMGetLocalVector(s_ctx->dm, &kappa_loc[i]));
-    PetscCall(DMGlobalToLocal(s_ctx->dm, s_ctx->kappa[i], INSERT_VALUES,
-                              kappa_loc[i]));
-    PetscCall(DMDAVecGetArrayRead(s_ctx->dm, kappa_loc[i], &arr_kappa_3d[i]));
-  }
+  PetscCall(DMGetLocalVector(s_ctx->dm, &t_loc));
+  PetscCall(DMGlobalToLocal(s_ctx->dm, t, INSERT_VALUES, t_loc));
+  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, t_loc, &arrayt));
+  // for (i = 0; i < DIM; ++i) {
+  //   PetscCall(DMGetLocalVector(s_ctx->dm, &kappa_loc[i]));
+  //   PetscCall(DMGlobalToLocal(s_ctx->dm, s_ctx->kappa[i], INSERT_VALUES,
+  //                             kappa_loc[i]));
+  //   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, kappa_loc[i], &arr_kappa_3d[i]));
+  // }
 
-  PetscCall(DMDAVecGetArrayDOF(s_ctx->dm, localu, &array));
-  PetscCall(DMDAVecGetArrayDOF(s_ctx->dm, dc, &arraydc));
-  PetscScalar localcost = 0;
-  // PetscCall(
-  //     PetscPrintf(PETSC_COMM_SELF, "cost before calculating: %f\n", *cost));
-  for (ey = starty; ey < starty + ny; ++ey) {
-    for (ex = startx; ex < startx + nx; ++ex) {
-      Ue[0] = array[ey + 1][ex][0];
-      Ue[1] = array[ey + 1][ex][1];
-      Ue[2] = array[ey + 1][ex + 1][0];
-      Ue[3] = array[ey + 1][ex + 1][1];
-      Ue[4] = array[ey][ex + 1][0];
-      Ue[5] = array[ey][ex + 1][1];
-      Ue[6] = array[ey][ex][0];
-      Ue[7] = array[ey][ex][1];
-      v = 0;
-      for (i = 0; i < 8; i++) {
-        for (j = 0; j < 8; j++) {
-          v += Ue[j] * value[i][j] * Ue[i];
-        }
-      }
-      localcost += v;
-      arraydc[ey][ex][0] = -3 * v * arrayx[ey][ex][0] * arrayx[ey][ex][0];
-    }
-  }
-  
-  PetscCall(DMDAVecRestoreArrayDOF(s_ctx->dm, localu, &array));
-  PetscCall(DMDAVecRestoreArrayDOF(s_ctx->dm, x, &arrayx));
-  PetscCall(DMDAVecRestoreArrayDOF(s_ctx->dm, dc, &arraydc));
-  
-  PetscCall(VecDestroy(&localu));
+  PetscCall(DMDAVecGetArray(s_ctx->dm, c, &arrayc));
+  PetscCall(DMDAVecGetArray(s_ctx->dm, dc, &arraydc));
+
+  // for (ez = startz; ez < startz + nz; ++ez) {
+  //   for (ey = starty; ey < starty + ny; ++ey) {
+  //     for (ex = startx; ex < startx + nx; ++ex) {
+  //       if (ex >= 1) {
+  //         arrayc[ez][ey][ex] += 2 * s_ctx->H_y * s_ctx->H_z / s_ctx->H_x *
+  //                               (arrayt[ez][ey][ex] - arrayt[ez][ey][ex - 1]) *
+  //                               (arrayt[ez][ey][ex] - arrayt[ez][ey][ex - 1]) /
+  //                               (1 / arr_kappa_3d[0][ez][ey][ex] +
+  //                                1 / arr_kappa_3d[0][ez][ey][ex - 1]);
+  //       }
+  //       if (ey >= 1) {
+  //         arrayc[ez][ey][ex] += 2 * s_ctx->H_z * s_ctx->H_x / s_ctx->H_y *
+  //                               (arrayt[ez][ey][ex] - arrayt[ez][ey - 1][ex]) *
+  //                               (arrayt[ez][ey][ex] - arrayt[ez][ey - 1][ex]) /
+  //                               (1 / arr_kappa_3d[1][ez][ey][ex] +
+  //                                1 / arr_kappa_3d[1][ez][ey - 1][ex]);
+  //       }
+  //       if (ez >= 1) {
+  //         arrayc[ez][ey][ex] += 2 * s_ctx->H_x * s_ctx->H_y / s_ctx->H_z *
+  //                               (arrayt[ez][ey][ex] - arrayt[ez - 1][ey][ex]) *
+  //                               (arrayt[ez][ey][ex] - arrayt[ez - 1][ey][ex]) /
+  //                               (1 / arr_kappa_3d[2][ez][ey][ex] +
+  //                                1 / arr_kappa_3d[2][ez - 1][ey][ex]);
+  //       }
+  //       if (ex >= PetscFloorReal((0.5 - s_ctx->lengthportion / 2) * s_ctx->M) &&
+  //           ex <= PetscCeilReal((0.5 + s_ctx->lengthportion / 2) * s_ctx->M) &&
+  //           ey >= PetscFloorReal((0.5 - s_ctx->widthportion / 2) * s_ctx->M) &&
+  //           ey <= PetscCeilReal((0.5 + s_ctx->widthportion / 2) * s_ctx->M) &&
+  //           ez == 0) {
+  //         arrayc[ez][ey][ex] += 2 * s_ctx->H_x * s_ctx->H_y / s_ctx->H_z *
+  //                               (arrayt[ez][ey][ex] - 1e3) *
+  //                               (arrayt[ez][ey][ex] - 1e3) *
+  //                               arr_kappa_3d[2][ez][ey][ex];
+  //       }
+  //     }
+  //   }
+  // }
+
+  PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, t_loc, &arrayt));
+  PetscCall(DMDAVecRestoreArray(s_ctx->dm, x, &arrayx));
+  PetscCall(DMDAVecRestoreArray(s_ctx->dm, dc, &arraydc));
+  PetscCall(DMDAVecRestoreArray(s_ctx->dm, c, &arrayc));
+  // for (i = 0; i < DIM; ++i) {
+  //   PetscCall(
+  //       DMDAVecRestoreArrayRead(s_ctx->dm, kappa_loc[i], &arr_kappa_3d[i]));
+  // }
+
+  PetscCall(VecDestroy(&t_loc));
   for (i = 0; i < DIM; ++i) {
     PetscCall(VecDestroy(&kappa_loc[i]));
   }

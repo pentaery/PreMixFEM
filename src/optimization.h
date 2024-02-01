@@ -12,10 +12,10 @@
 #include <petscvec.h>
 #include <petscviewer.h>
 
-PetscErrorCode formx(PCCtx *s_ctx);
+PetscErrorCode formx(PCCtx *s_ctx, Vec x);
 PetscErrorCode formkappa(PCCtx *s_ctx);
 PetscErrorCode formMatrix(PCCtx *s_ctx, Mat A);
 PetscErrorCode formRHS(PCCtx *s_ctx, Vec rhs);
-PetscErrorCode computeCost(PCCtx *s_ctx, Vec u, Vec cost, Vec dc);
+PetscErrorCode computeCost(PCCtx *s_ctx, Vec x, Vec t, Vec c, Vec dc);
 // PetscErrorCode filter(DM dm, Vec dc, Vec x);
 // PetscErrorCode optimalCriteria(DM dm, Vec x, Vec dc, PetscScalar volfrac);
