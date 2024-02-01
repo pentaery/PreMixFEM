@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
   PetscInt mesh[3] = {3, 3, 3};
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
   Mat A;
-  Vec rhs, u;
+  Vec rhs, t, c, dc;
   KSP ksp;
 
   PetscCall(PC_init(&test, dom, mesh));
@@ -27,7 +27,9 @@ int main(int argc, char **argv) {
 
   PetscCall(DMCreateMatrix(test.dm, &A));
   PetscCall(DMCreateGlobalVector(test.dm, &rhs));
-  PetscCall(DMCreateGlobalVector(test.dm, &u));
+  PetscCall(DMCreateGlobalVector(test.dm, &t));
+  PetscCall(DMCreateGlobalVector(test.dm, &c));
+  PetscCall(DMCreateGlobalVector(test.dm, &dc));
   PetscCall(formx(&test));
   PetscCall(formkappa(&test));
   PetscCall(formMatrix(&test, A));
@@ -35,14 +37,12 @@ int main(int argc, char **argv) {
   PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
   PetscCall(KSPSetOperators(ksp, A, A));
   PetscCall(KSPSetFromOptions(ksp));
-  PetscCall(KSPSolve(ksp, rhs, u));
-
+  PetscCall(KSPSolve(ksp, rhs, t));
 
   PetscCall(MatDestroy(&A));
   PetscCall(VecDestroy(&rhs));
-  PetscCall(VecDestroy(&u));
+  PetscCall(VecDestroy(&t));
   PetscCall(KSPDestroy(&ksp));
-
 
   PetscCall(PetscFinalize());
 }
