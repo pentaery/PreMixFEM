@@ -31,7 +31,7 @@
 
 typedef struct preconditioner_context {
   DM dm;
-  Vec kappa[DIM], x, *ms_bases_c, *ms_bases_cc;
+  Vec kappa[DIM], *ms_bases_c, *ms_bases_cc;
   Vec cost;
   KSP *ksp_lv1, ksp_lv2, ksp_lv3;
   PetscInt *coarse_startx, *coarse_lenx, *coarse_starty, *coarse_leny,
@@ -47,7 +47,6 @@ typedef struct preconditioner_context {
   PetscBool use_W_cycle, no_shift_A_cc, use_full_Cholesky_lv1, use_2level;
   PetscInt M, N, P;
   // 网格数
-  PetscInt cr;
   PetscScalar widthportion, lengthportion;
 } PCCtx;
 

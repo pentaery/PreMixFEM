@@ -7,7 +7,6 @@
 #include <petscerror.h>
 #include <petscksp.h>
 #include <petscmat.h>
-#include <petscmath.h>
 #include <petscsys.h>
 #include <petscsystypes.h>
 #include <petscvec.h>
@@ -17,12 +16,14 @@ int main(int argc, char **argv) {
   PetscCall(
       PetscInitialize(&argc, &argv, (char *)0, "Toplogical Optimiazation\n"));
   PCCtx test;
-  PetscInt mesh[3] = {3, 3, 3};
+  PetscInt mesh[3] = {16, 16, 16};
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
-  PetscScalar cost = 0, change = 0;
+  PetscScalar cost = 0;
   Mat A;
   Vec rhs, t, x, dc;
   KSP ksp;
+  PetscInt loop = 0;
+  PetscScalar change = 1.0;
 
   PetscCall(PC_init(&test, dom, mesh));
   PetscCall(PC_print_info(&test));
@@ -33,19 +34,26 @@ int main(int argc, char **argv) {
   PetscCall(DMCreateGlobalVector(test.dm, &t));
   PetscCall(DMCreateGlobalVector(test.dm, &dc));
 
-  PetscCall(VecSet(dc, 0));
-
-  PetscCall(formx(&test, x));
-
-  PetscCall(formkappa(&test, x));
-  PetscCall(formMatrix(&test, A));
-  PetscCall(formRHS(&test, rhs, x));
   PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
-  PetscCall(KSPSetOperators(ksp, A, A));
   PetscCall(KSPSetFromOptions(ksp));
-  PetscCall(KSPSolve(ksp, rhs, t));
-  PetscCall(computeCost(&test, A, t, &cost));
-  PetscCall(optimalCriteria(&test, x, dc, &change));
+  //   PetscCall(KSPSetUp(ksp));
+
+  while (change > 0.01) {
+    loop += 1;
+    cost = 0;
+    PetscCall(VecSet(dc, 0));
+    PetscCall(formx(&test, x));
+    PetscCall(formkappa(&test, x));
+    PetscCall(formMatrix(&test, A));
+    PetscCall(formRHS(&test, rhs, x));
+    PetscCall(KSPSetOperators(ksp, A, A));
+    PetscCall(KSPSolve(ksp, rhs, t));
+    PetscCall(computeCost(&test, A, t, &cost));
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
+    PetscCall(computeGradient(&test, x, t, dc));
+    PetscCall(filter(&test, dc, x));
+    PetscCall(optimalCriteria(&test, x, dc, &change));
+  }
 
   PetscCall(MatDestroy(&A));
   PetscCall(VecDestroy(&rhs));

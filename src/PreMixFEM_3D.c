@@ -2397,7 +2397,6 @@ PetscErrorCode PC_init(PCCtx *s_ctx, PetscScalar *dom, PetscInt *mesh) {
   s_ctx->P = mesh[2];
   s_ctx->widthportion = 0.1;
   s_ctx->lengthportion = 0.1;
-  s_ctx->cr = 6;
 
   s_ctx->smoothing_iters_lv1 = 1;
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-si_lv1",
@@ -2481,7 +2480,6 @@ PetscErrorCode PC_init(PCCtx *s_ctx, PetscScalar *dom, PetscInt *mesh) {
   // the construction of A_i in level-1.
   PetscCall(DMSetUp(s_ctx->dm));
 
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &s_ctx->x));
   for (PetscInt i = 0; i < DIM; ++i)
     PetscCall(DMCreateGlobalVector(s_ctx->dm, &s_ctx->kappa[i]));
 
