@@ -440,6 +440,7 @@ PetscErrorCode optimalCriteria(PCCtx *s_ctx, Vec x, Vec dc,
   PetscFunctionBeginUser;
   PetscScalar l1 = 0, l2 = 100000, lmid;
   PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
+  PetscScalar move = 0.2;
   PetscScalar ***arraydc, ***arrayx;
   PetscScalar sum;
   PetscScalar volume = volfrac * s_ctx->M * s_ctx->N * s_ctx->P;

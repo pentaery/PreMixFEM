@@ -12,6 +12,7 @@
 #include <petscsystypes.h>
 #include <petscvec.h>
 #include <petscviewer.h>
+#include <petscviewerhdf5.h>
 
 int main(int argc, char **argv) {
   PetscCall(
@@ -44,8 +45,16 @@ int main(int argc, char **argv) {
   PetscCall(KSPSetOperators(ksp, A, A));
   PetscCall(KSPSetFromOptions(ksp));
   PetscCall(KSPSolve(ksp, rhs, t));
+
   PetscCall(computeCost(&test, A, t, &cost));
+  PetscCall(computeGradient(&test, x, t, dc));
+  PetscCall(VecView(dc, PETSC_VIEWER_STDOUT_WORLD));
+  PetscCall(filter(&test, dc, x));
+  PetscCall(VecView(dc, PETSC_VIEWER_STDOUT_WORLD));
+
   PetscCall(optimalCriteria(&test, x, dc, &change));
+
+
 
   PetscCall(MatDestroy(&A));
   PetscCall(VecDestroy(&rhs));

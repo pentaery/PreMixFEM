@@ -15,7 +15,6 @@
 #define tD 1e3
 #define rmin 1.5
 #define volfrac 0.5
-#define move 0.2
 #define cr 6
 
 PetscErrorCode formx(PCCtx *s_ctx, Vec x);
