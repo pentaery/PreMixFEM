@@ -452,7 +452,7 @@ PetscErrorCode optimalCriteria(PCCtx *s_ctx, Vec x, Vec dc,
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, dc, &arraydc));
 
   while (l2 - l1 > 1e-4) {
-
+    PetscCall(VecCopy(xold, x));
     PetscCall(DMDAVecGetArray(s_ctx->dm, x, &arrayx));
     lmid = (l1 + l2) / 2;
     for (ez = startz; ez < startz + nz; ++ez) {
@@ -475,14 +475,16 @@ PetscErrorCode optimalCriteria(PCCtx *s_ctx, Vec x, Vec dc,
     PetscCall(DMDAVecRestoreArray(s_ctx->dm, x, &arrayx));
 
     PetscCall(VecSum(x, &sum));
-
+    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "sum: %f\n", sum));
     if (sum > volume) {
       l1 = lmid;
     } else {
       l2 = lmid;
     }
+
     // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "lambda: %f\n", lmid));
   }
+
   PetscCall(VecAXPY(xold, -1, x));
   PetscCall(VecMax(xold, NULL, change));
 
@@ -491,10 +493,10 @@ PetscErrorCode optimalCriteria(PCCtx *s_ctx, Vec x, Vec dc,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode computeCost1(PCCtx *s_ctx, Vec x, Vec t, Vec c, Vec dc) {
+PetscErrorCode computeCost1(PCCtx *s_ctx, Vec t, Vec c) {
   PetscFunctionBeginUser;
   PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez, i;
-  PetscScalar ***arrayt, ***arrayc, ***arraydc, ***arrayx, ***arr_kappa_3d[DIM];
+  PetscScalar ***arrayt, ***arrayc, ***arr_kappa_3d[DIM];
   Vec t_loc;
   Vec kappa_loc[DIM];
 
@@ -512,8 +514,6 @@ PetscErrorCode computeCost1(PCCtx *s_ctx, Vec x, Vec t, Vec c, Vec dc) {
   }
 
   PetscCall(DMDAVecGetArray(s_ctx->dm, c, &arrayc));
-  PetscCall(DMDAVecGetArray(s_ctx->dm, dc, &arraydc));
-  PetscCall(DMDAVecGetArray(s_ctx->dm, x, &arrayx));
 
   for (ez = startz; ez < startz + nz; ++ez) {
     for (ey = starty; ey < starty + ny; ++ey) {
@@ -524,26 +524,6 @@ PetscErrorCode computeCost1(PCCtx *s_ctx, Vec x, Vec t, Vec c, Vec dc) {
                                 (arrayt[ez][ey][ex] - arrayt[ez][ey][ex - 1]) /
                                 (1 / arr_kappa_3d[0][ez][ey][ex] +
                                  1 / arr_kappa_3d[0][ez][ey][ex - 1]);
-          arraydc[ez][ey][ex] += 6 * (1 - 10e-6) / s_ctx->H_x * s_ctx->H_y *
-                                 s_ctx->H_z * arrayx[ez][ey][ex] *
-                                 arrayx[ez][ey][ex] *
-                                 (arrayt[ez][ey][ex] - arrayt[ez][ey][ex - 1]) *
-                                 (arrayt[ez][ey][ex] - arrayt[ez][ey][ex - 1]) /
-                                 ((1 + arr_kappa_3d[0][ez][ey][ex] /
-                                           arr_kappa_3d[0][ez][ey][ex - 1]) *
-                                  (1 + arr_kappa_3d[0][ez][ey][ex] /
-                                           arr_kappa_3d[0][ez][ey][ex - 1]));
-        }
-        if (ex <= s_ctx->M - 1) {
-          arraydc[ez][ey][ex] += 6 * (1 - 10e-6) / s_ctx->H_x * s_ctx->H_y *
-                                 s_ctx->H_z * arrayx[ez][ey][ex] *
-                                 arrayx[ez][ey][ex] *
-                                 (arrayt[ez][ey][ex + 1] - arrayt[ez][ey][ex]) *
-                                 (arrayt[ez][ey][ex + 1] - arrayt[ez][ey][ex]) /
-                                 ((1 + arr_kappa_3d[0][ez][ey][ex] /
-                                           arr_kappa_3d[0][ez][ey][ex + 1]) *
-                                  (1 + arr_kappa_3d[0][ez][ey][ex] /
-                                           arr_kappa_3d[0][ez][ey][ex + 1]));
         }
         if (ey >= 1) {
           arrayc[ez][ey][ex] += 2 * s_ctx->H_z * s_ctx->H_x / s_ctx->H_y *
@@ -551,26 +531,6 @@ PetscErrorCode computeCost1(PCCtx *s_ctx, Vec x, Vec t, Vec c, Vec dc) {
                                 (arrayt[ez][ey][ex] - arrayt[ez][ey - 1][ex]) /
                                 (1 / arr_kappa_3d[1][ez][ey][ex] +
                                  1 / arr_kappa_3d[1][ez][ey - 1][ex]);
-          arraydc[ez][ey][ex] += 6 * (1 - 10e-6) * s_ctx->H_x / s_ctx->H_y *
-                                 s_ctx->H_z * arrayx[ez][ey][ex] *
-                                 arrayx[ez][ey][ex] *
-                                 (arrayt[ez][ey][ex] - arrayt[ez][ey - 1][ex]) *
-                                 (arrayt[ez][ey][ex] - arrayt[ez][ey - 1][ex]) /
-                                 ((1 + arr_kappa_3d[1][ez][ey][ex] /
-                                           arr_kappa_3d[1][ez][ey - 1][ex]) *
-                                  (1 + arr_kappa_3d[1][ez][ey][ex] /
-                                           arr_kappa_3d[1][ez][ey - 1][ex]));
-        }
-        if (ey < s_ctx->N - 1) {
-          arraydc[ez][ey][ex] += 6 * (1 - 10e-6) * s_ctx->H_x / s_ctx->H_y *
-                                 s_ctx->H_z * arrayx[ez][ey][ex] *
-                                 arrayx[ez][ey][ex] *
-                                 (arrayt[ez][ey + 1][ex] - arrayt[ez][ey][ex]) *
-                                 (arrayt[ez][ey + 1][ex] - arrayt[ez][ey][ex]) /
-                                 ((1 + arr_kappa_3d[1][ez][ey][ex] /
-                                           arr_kappa_3d[1][ez][ey + 1][ex]) *
-                                  (1 + arr_kappa_3d[1][ez][ey][ex] /
-                                           arr_kappa_3d[1][ez][ey + 1][ex]));
         }
         if (ez >= 1) {
           arrayc[ez][ey][ex] += 2 * s_ctx->H_x * s_ctx->H_y / s_ctx->H_z *
@@ -578,27 +538,8 @@ PetscErrorCode computeCost1(PCCtx *s_ctx, Vec x, Vec t, Vec c, Vec dc) {
                                 (arrayt[ez][ey][ex] - arrayt[ez - 1][ey][ex]) /
                                 (1 / arr_kappa_3d[2][ez][ey][ex] +
                                  1 / arr_kappa_3d[2][ez - 1][ey][ex]);
-          arraydc[ez][ey][ex] += 6 * (1 - 10e-6) * s_ctx->H_x * s_ctx->H_y /
-                                 s_ctx->H_z * arrayx[ez][ey][ex] *
-                                 arrayx[ez][ey][ex] *
-                                 (arrayt[ez][ey][ex] - arrayt[ez - 1][ey][ex]) *
-                                 (arrayt[ez][ey][ex] - arrayt[ez - 1][ey][ex]) /
-                                 ((1 + arr_kappa_3d[2][ez][ey][ex] /
-                                           arr_kappa_3d[2][ez - 1][ey][ex]) *
-                                  (1 + arr_kappa_3d[2][ez][ey][ex] /
-                                           arr_kappa_3d[2][ez - 1][ey][ex]));
         }
-        if (ez < s_ctx->P - 1) {
-          arraydc[ez][ey][ex] += 6 * (1 - 10e-6) * s_ctx->H_x * s_ctx->H_y /
-                                 s_ctx->H_z * arrayx[ez][ey][ex] *
-                                 arrayx[ez][ey][ex] *
-                                 (arrayt[ez + 1][ey][ex] - arrayt[ez][ey][ex]) *
-                                 (arrayt[ez + 1][ey][ex] - arrayt[ez][ey][ex]) /
-                                 ((1 + arr_kappa_3d[2][ez][ey][ex] /
-                                           arr_kappa_3d[2][ez + 1][ey][ex]) *
-                                  (1 + arr_kappa_3d[2][ez][ey][ex] /
-                                           arr_kappa_3d[2][ez + 1][ey][ex]));
-        }
+
         if (ex >= PetscFloorReal((0.5 - s_ctx->lengthportion / 2) * s_ctx->M) &&
             ex <= PetscCeilReal((0.5 + s_ctx->lengthportion / 2) * s_ctx->M) &&
             ey >= PetscFloorReal((0.5 - s_ctx->widthportion / 2) * s_ctx->M) &&
@@ -608,18 +549,12 @@ PetscErrorCode computeCost1(PCCtx *s_ctx, Vec x, Vec t, Vec c, Vec dc) {
                                 (arrayt[ez][ey][ex] - tD) *
                                 (arrayt[ez][ey][ex] - tD) *
                                 arr_kappa_3d[2][ez][ey][ex];
-          arraydc[ez][ey][ex] +=
-              6 * (1 - 10e-6) * s_ctx->H_x * s_ctx->H_y / s_ctx->H_z *
-              arrayx[ez][ey][ex] * arrayx[ez][ey][ex] *
-              (arrayt[ez][ey][ex] - tD) * (arrayt[ez][ey][ex] - tD);
         }
       }
     }
   }
 
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, t_loc, &arrayt));
-  PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, x, &arrayx));
-  PetscCall(DMDAVecRestoreArray(s_ctx->dm, dc, &arraydc));
   PetscCall(DMDAVecRestoreArray(s_ctx->dm, c, &arrayc));
   for (i = 0; i < DIM; ++i) {
     PetscCall(

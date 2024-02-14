@@ -26,4 +26,4 @@ PetscErrorCode filter(PCCtx *s_ctx, Vec dc, Vec x);
 PetscErrorCode computeCost(PCCtx *s_ctx, Mat A, Vec t, PetscScalar *cost);
 PetscErrorCode optimalCriteria(PCCtx *s_ctx, Vec x, Vec dc,
                                PetscScalar *change);
-PetscErrorCode computeCost1(PCCtx *s_ctx, Vec x, Vec t, Vec c, Vec dc);
+PetscErrorCode computeCost1(PCCtx *s_ctx, Vec t, Vec c);
