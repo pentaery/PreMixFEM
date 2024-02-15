@@ -33,10 +33,10 @@ int main(int argc, char **argv) {
   PetscCall(DMCreateGlobalVector(test.dm, &x));
   PetscCall(DMCreateGlobalVector(test.dm, &t));
   PetscCall(DMCreateGlobalVector(test.dm, &dc));
-  PetscCall(formBoundary(&test));
-  PetscCall(VecSet(dc, 0));
 
-  PetscCall(formx(&test, x));
+  PetscCall(VecSet(dc, 0));
+  PetscCall(VecSet(x, 0.5));
+  PetscCall(formBoundary(&test));
   PetscCall(formkappa(&test, x));
   PetscCall(formMatrix(&test, A));
   PetscCall(formRHS(&test, rhs, x));

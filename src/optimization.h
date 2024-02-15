@@ -17,7 +17,6 @@
 #define volfrac 0.5
 #define cr 6
 PetscErrorCode formBoundary(PCCtx *s_ctx);
-PetscErrorCode formx(PCCtx *s_ctx, Vec x);
 PetscErrorCode formkappa(PCCtx *s_ctx, Vec x);
 PetscErrorCode formMatrix(PCCtx *s_ctx, Mat A);
 PetscErrorCode formRHS(PCCtx *s_ctx, Vec rhs, Vec x);
