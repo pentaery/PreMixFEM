@@ -33,6 +33,7 @@ typedef struct preconditioner_context {
   DM dm;
   Vec kappa[DIM], *ms_bases_c, *ms_bases_cc;
   Vec cost;
+  Vec boundary;
   KSP *ksp_lv1, ksp_lv2, ksp_lv3;
   PetscInt *coarse_startx, *coarse_lenx, *coarse_starty, *coarse_leny,
       *coarse_startz, *coarse_lenz;

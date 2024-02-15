@@ -14,6 +14,32 @@
 #include <petscvec.h>
 #include <petscviewer.h>
 
+PetscErrorCode formBoundary(PCCtx *s_ctx) {
+  PetscFunctionBeginUser;
+  PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
+  PetscScalar ***array;
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &s_ctx->boundary));
+  PetscCall(
+      DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
+  PetscCall(DMDAVecGetArray(s_ctx->dm, s_ctx->boundary, &array));
+  for (ez = startz; ez < startz + nz; ++ez) {
+    for (ey = starty; ey < starty + ny; ++ey) {
+      for (ex = startx; ex < startx + nx; ++ex) {
+        if (ex >= 0.45 * s_ctx->M && ex <= 0.55 * s_ctx->M &&
+            ey >= 0.45 * s_ctx->N && ey <= 0.55 * s_ctx->N && ez == 0) {
+          array[ez][ey][ex] = 1;
+        } else {
+          array[ez][ey][ex] = 0;
+        }
+      }
+    }
+  }
+
+  PetscCall(DMDAVecRestoreArray(s_ctx->dm, s_ctx->boundary, &array));
+
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode formx(PCCtx *s_ctx, Vec x) {
   PetscFunctionBeginUser;
   PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
@@ -195,42 +221,45 @@ PetscErrorCode formRHS(PCCtx *s_ctx, Vec rhs, Vec x) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode computeCost(PCCtx *s_ctx, Mat A, Vec t, PetscScalar *cost) {
+PetscErrorCode computeCost(PCCtx *s_ctx, Mat A, Vec t, Vec rhs,
+                           PetscScalar *cost) {
   PetscFunctionBeginUser;
   PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
-  Vec t_mod;
-  Vec temp;
+  Vec c;
+  PetscScalar cost1, cost2;
   PetscScalar ***arrayt, ***arraycost;
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &t_mod));
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &temp));
+  PetscCall(VecDot(rhs, t, &cost1));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &c));
+  PetscCall(VecSet(c, 0));
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, t, &arrayt));
-  PetscCall(DMDAVecGetArray(s_ctx->dm, t_mod, &arraycost));
+  PetscCall(DMDAVecGetArray(s_ctx->dm, c, &arraycost));
 
   PetscCall(
       DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
 
+
   for (ez = startz; ez < startz + nz; ++ez) {
-    for (ey = starty; ey < starty + ny; ey++) {
-      for (ex = startx; ex < startx + nx; ex++) {
-        arraycost[ez][ey][ex] = arrayt[ez][ey][ex];
+    for (ey = starty; ey < starty + ny; ++ey) {
+      for (ex = startx; ex < startx + nx; ++ex) {
         if (ex >= PetscFloorReal((0.5 - s_ctx->lengthportion / 2) * s_ctx->M) &&
             ex <= PetscCeilReal((0.5 + s_ctx->lengthportion / 2) * s_ctx->M) &&
-            ey >= PetscFloorReal((0.5 - s_ctx->widthportion / 2) * s_ctx->M) &&
-            ey <= PetscCeilReal((0.5 + s_ctx->widthportion / 2) * s_ctx->M) &&
+            ey >= PetscFloorReal((0.5 - s_ctx->widthportion / 2) * s_ctx->N) &&
+            ey <= PetscCeilReal((0.5 + s_ctx->widthportion / 2) * s_ctx->N) &&
             ez == 0) {
-          arraycost[ez][ey][ex] -= tD;
+          arraycost[ez][ey][ex] += s_ctx->H_x * s_ctx->H_y * s_ctx->H_z * tD *
+                                   (tD - 2 * arrayt[ez][ey][ex]);
         }
       }
     }
   }
 
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, t, &arrayt));
-  PetscCall(DMDAVecRestoreArray(s_ctx->dm, t_mod, &arraycost));
-  PetscCall(MatMult(A, t_mod, temp));
-  PetscCall(VecDot(temp, t_mod, cost));
+  PetscCall(DMDAVecRestoreArray(s_ctx->dm, c, &arraycost));
 
-  PetscCall(VecDestroy(&t_mod));
-  PetscCall(VecDestroy(&temp));
+  PetscCall(VecSum(c, &cost2));
+  *cost = cost1 + cost2;
+
+  PetscCall(VecDestroy(&c));
   PetscFunctionReturn(0);
 }
 

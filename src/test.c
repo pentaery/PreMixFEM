@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
   PetscCall(DMCreateGlobalVector(test.dm, &x));
   PetscCall(DMCreateGlobalVector(test.dm, &t));
   PetscCall(DMCreateGlobalVector(test.dm, &dc));
-
+  PetscCall(formBoundary(&test));
   PetscCall(VecSet(dc, 0));
 
   PetscCall(formx(&test, x));
@@ -45,16 +45,12 @@ int main(int argc, char **argv) {
   PetscCall(KSPSetFromOptions(ksp));
   PetscCall(KSPSolve(ksp, rhs, t));
 
-  PetscCall(computeCost(&test, A, t, &cost));
+  PetscCall(computeCost(&test, A, t, rhs, &cost));
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
   PetscCall(computeGradient(&test, x, t, dc));
   PetscCall(filter(&test, dc, x));
 
   PetscCall(optimalCriteria(&test, x, dc, &change));
-  PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
-
-
-
-
 
   PetscCall(MatDestroy(&A));
   PetscCall(VecDestroy(&rhs));
