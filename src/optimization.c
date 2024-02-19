@@ -25,7 +25,7 @@ PetscErrorCode formBoundary(PCCtx *s_ctx) {
   for (ez = startz; ez < startz + nz; ++ez) {
     for (ey = starty; ey < starty + ny; ++ey) {
       for (ex = startx; ex < startx + nx; ++ex) {
-        if (ex == 1 && ey == 1 && ez == 0) {
+        if (ex >= 13 && ex <= 16 && ey >= 13 && ey <= 16 && ez == 0) {
           array[ez][ey][ex] = 1;
         } else {
           array[ez][ey][ex] = 0;
@@ -133,8 +133,6 @@ PetscErrorCode formMatrix(PCCtx *s_ctx, Mat A) {
                                         ADD_VALUES));
         }
         if (arrayBoundary[ez][ey][ex] == 1) {
-          PetscCall(PetscPrintf(PETSC_COMM_SELF, "ex: %d, ey: %d, ez: %d\n", ex,
-                                ey, ez));
           col[0] = (MatStencil){.i = ex, .j = ey, .k = ez};
           row[0] = (MatStencil){.i = ex, .j = ey, .k = ez};
           val_A[0][0] = 2 * s_ctx->H_x * s_ctx->H_y / s_ctx->H_z *
@@ -197,6 +195,7 @@ PetscErrorCode computeCost(PCCtx *s_ctx, Mat A, Vec t, Vec rhs,
   PetscScalar cost1, cost2;
   PetscScalar ***arrayt, ***arraycost, ***arrayBoundary;
   PetscCall(VecDot(rhs, t, &cost1));
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost1: %f\n", cost1));
   PetscCall(DMCreateGlobalVector(s_ctx->dm, &c));
   PetscCall(VecSet(c, 0));
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, t, &arrayt));
@@ -223,6 +222,7 @@ PetscErrorCode computeCost(PCCtx *s_ctx, Mat A, Vec t, Vec rhs,
       DMDAVecRestoreArrayRead(s_ctx->dm, s_ctx->boundary, &arrayBoundary));
 
   PetscCall(VecSum(c, &cost2));
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost2: %f\n", cost2));
   *cost = cost1 + cost2;
 
   PetscCall(VecDestroy(&c));

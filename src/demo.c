@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
   PetscCall(
       PetscInitialize(&argc, &argv, (char *)0, "Toplogical Optimiazation\n"));
   PCCtx test;
-  PetscInt mesh[3] = {16, 16, 16};
+  PetscInt mesh[3] = {32, 32, 32};
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
   PetscScalar cost = 0;
   Mat A;
@@ -25,6 +25,8 @@ int main(int argc, char **argv) {
   KSP ksp;
   PetscInt loop = 0;
   PetscScalar change = 1;
+
+  char str[80];
 
   PetscCall(PC_init(&test, dom, mesh));
   PetscCall(PC_print_info(&test));
@@ -43,6 +45,14 @@ int main(int argc, char **argv) {
 
   while (change > 0.01) {
     loop += 1;
+
+    PetscViewer viewer;
+    sprintf(str, "../data/output/change%02d.vtr", loop);
+    PetscCall(
+        PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
+    PetscCall(VecView(x, viewer));
+    PetscCall(PetscViewerDestroy(&viewer));
+
     PetscCall(VecSet(dc, 0));
     PetscCall(formkappa(&test, x));
     PetscCall(formMatrix(&test, A));
@@ -58,11 +68,6 @@ int main(int argc, char **argv) {
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));
   }
 
-  PetscViewer viewer;
-  PetscCall(PetscViewerHDF5Open(PETSC_COMM_WORLD, "../data/output.h5",
-                                FILE_MODE_WRITE, &viewer));
-  PetscCall(VecView(x, viewer));
-  PetscCall(PetscViewerDestroy(&viewer));
   PetscCall(PetscPrintf(PETSC_COMM_WORLD, "loop: %d\n", loop));
   PetscCall(MatDestroy(&A));
   PetscCall(VecDestroy(&rhs));
