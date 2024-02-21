@@ -34,24 +34,19 @@ int main(int argc, char **argv) {
   PetscCall(DMCreateGlobalVector(test.dm, &t));
   PetscCall(DMCreateGlobalVector(test.dm, &dc));
 
-  PetscCall(VecSet(dc, 0));
-  PetscCall(VecSet(x, 0.5));
-  PetscCall(formBoundary(&test));
-  PetscCall(formkappa(&test, x));
-  PetscCall(formMatrix(&test, A));
-  PetscCall(formRHS(&test, rhs, x));
+  PetscCall(formBoundarytest(&test));
+  PetscCall(formkappatest(&test, x));
+  PetscCall(formMatrixtest(&test, A));
+  // PetscCall(MatView(A, PETSC_VIEWER_STDOUT_WORLD));
+  PetscCall(formRHStest(&test, rhs, x));
   PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
   PetscCall(KSPSetOperators(ksp, A, A));
   PetscCall(KSPSetFromOptions(ksp));
   PetscCall(KSPSolve(ksp, rhs, t));
 
-  PetscCall(computeCost(&test, A, t, rhs, &cost));
-  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
-  PetscCall(computeGradient(&test, x, t, dc));
-  PetscCall(filter(&test, dc, x));
+  // PetscCall(MatView(A, PETSC_VIEWER_STDOUT_WORLD));
 
-  PetscCall(optimalCriteria(&test, x, dc, &change));
-
+  PetscCall(VecView(t, PETSC_VIEWER_STDOUT_WORLD));
   PetscCall(MatDestroy(&A));
   PetscCall(VecDestroy(&rhs));
   PetscCall(VecDestroy(&t));
