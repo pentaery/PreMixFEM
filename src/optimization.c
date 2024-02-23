@@ -576,8 +576,6 @@ PetscErrorCode formBoundarytest(PCCtx *s_ctx) {
     for (ey = starty; ey < starty + ny; ++ey) {
       for (ex = startx; ex < startx + nx; ++ex) {
         if (ez == 0 || ez == s_ctx->P - 1) {
-          array[ez][ey][ex] = 1;
-        } else {
           array[ez][ey][ex] = 0;
         }
       }
@@ -633,14 +631,19 @@ PetscErrorCode formRHStest(PCCtx *s_ctx, Vec rhs, Vec x) {
             s_ctx->H_x * s_ctx->H_y * s_ctx->H_z *
             PetscCosReal(PETSC_PI * ((ex + 0.5) * s_ctx->H_x)) *
             PetscCosReal(PETSC_PI * ((ey + 0.5) * s_ctx->H_y)) *
-            PetscExpReal((ez + 0.5) * s_ctx->H_z) *
+            PetscExpReal(((ez + 0.5) * s_ctx->H_z)) *
             (2 * PETSC_PI * PETSC_PI - 1);
         if (ez == 0) {
-          array[ez][ey][ex] += 2 * s_ctx->H_x * s_ctx->H_y / s_ctx->H_z;
+          array[ez][ey][ex] += 2 * arraykappa[ez][ey][ex] * s_ctx->H_x *
+                               s_ctx->H_y / s_ctx->H_z *
+                               PetscCosReal((ex + 0.5) * s_ctx->H_x) *
+                               PetscCosReal((ey + 0.5) * s_ctx->H_y);
         }
         if (ez == s_ctx->P - 1) {
           array[ez][ey][ex] -=
-              2 * s_ctx->H_x * s_ctx->H_y / s_ctx->H_z * PetscExpReal(1);
+              2 * arraykappa[ez][ey][ex] * s_ctx->H_x * s_ctx->H_y /
+              s_ctx->H_z * PetscCosReal((ex + 0.5) * s_ctx->H_x) *
+              PetscCosReal((ey + 0.5) * s_ctx->H_y) * PetscExpReal(1);
         }
       }
     }
@@ -716,20 +719,13 @@ PetscErrorCode formMatrixtest(PCCtx *s_ctx, Mat A) {
           PetscCall(MatSetValuesStencil(A, 2, &row[0], 2, &col[0], &val_A[0][0],
                                         ADD_VALUES));
         }
-        if (ez == 0) {
-          col[0] = (MatStencil){.i = ex, .j = ey, .k = ez};
+        if (ez == 0 || ez == s_ctx->P - 1) {
           row[0] = (MatStencil){.i = ex, .j = ey, .k = ez};
+
           val_A[0][0] = 2 * s_ctx->H_x * s_ctx->H_y / s_ctx->H_z *
                         arr_kappa_3d[2][ez][ey][ex];
-          PetscCall(MatSetValuesStencil(A, 1, &col[0], 1, &row[0], &val_A[0][0],
-                                        ADD_VALUES));
-        }
-        if (ez == s_ctx->P - 1) {
-          col[0] = (MatStencil){.i = ex, .j = ey, .k = ez};
-          row[0] = (MatStencil){.i = ex, .j = ey, .k = ez};
-          val_A[0][0] = 2 * s_ctx->H_x * s_ctx->H_y / s_ctx->H_z *
-                        arr_kappa_3d[2][ez][ey][ex];
-          PetscCall(MatSetValuesStencil(A, 1, &col[0], 1, &row[0], &val_A[0][0],
+          PetscCall(MatSetValuesStencil(A, 1, &row[0], 1, &row[0],
+          &val_A[0][0],
                                         ADD_VALUES));
         }
       }
@@ -744,5 +740,35 @@ PetscErrorCode formMatrixtest(PCCtx *s_ctx, Mat A) {
   }
   PetscCall(
       DMDAVecRestoreArrayRead(s_ctx->dm, s_ctx->boundary, &arrayBoundary));
+  PetscFunctionReturn(0);
+}
+PetscErrorCode computeError(PCCtx *s_ctx, Vec t, PetscScalar *error) {
+  PetscFunctionBeginUser;
+  PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
+  PetscScalar ***arrayt, ***arraye;
+  Vec err;
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &err));
+  PetscCall(
+      DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
+  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, t, &arrayt));
+  PetscCall(DMDAVecGetArray(s_ctx->dm, err, &arraye));
+
+  for (ez = startz; ez < startz + nz; ++ez)
+    for (ey = starty; ey < starty + ny; ++ey)
+      for (ex = startx; ex < startx + nx; ++ex) {
+        arraye[ez][ey][ex] =
+            PetscPowReal(
+                arrayt[ez][ey][ex] -
+                    PetscCosReal(PETSC_PI * ((ex + 0.5) * s_ctx->H_x)) *
+                        PetscCosReal(PETSC_PI * ((ey + 0.5) * s_ctx->H_y)) *
+                        PetscExpReal(((ez + 0.5) * s_ctx->H_z)),
+                2) *
+            s_ctx->H_x * s_ctx->H_y * s_ctx->H_z;
+      }
+
+  PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, t, &arrayt));
+  PetscCall(DMDAVecRestoreArray(s_ctx->dm, err, &arraye));
+  PetscCall(VecSum(err, error));
+  PetscCall(VecDestroy(&err));
   PetscFunctionReturn(0);
 }

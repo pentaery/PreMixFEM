@@ -32,3 +32,4 @@ PetscErrorCode formBoundarytest(PCCtx *s_ctx);
 PetscErrorCode formkappatest(PCCtx *s_ctx, Vec x);
 PetscErrorCode formRHStest(PCCtx *s_ctx, Vec rhs, Vec x);
 PetscErrorCode formMatrixtest(PCCtx *s_ctx, Mat A);
+PetscErrorCode computeError(PCCtx *s_ctx, Vec t, PetscScalar *error);
