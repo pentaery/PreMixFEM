@@ -196,7 +196,6 @@ PetscErrorCode computeCost(PCCtx *s_ctx, Mat A, Vec t, Vec rhs,
   PetscScalar cost1, cost2;
   PetscScalar ***arrayt, ***arraycost, ***arrayBoundary;
   PetscCall(VecDot(rhs, t, &cost1));
-  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost1: %f\n", cost1));
   PetscCall(DMCreateGlobalVector(s_ctx->dm, &c));
   PetscCall(VecSet(c, 0));
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, t, &arrayt));
@@ -223,7 +222,6 @@ PetscErrorCode computeCost(PCCtx *s_ctx, Mat A, Vec t, Vec rhs,
       DMDAVecRestoreArrayRead(s_ctx->dm, s_ctx->boundary, &arrayBoundary));
 
   PetscCall(VecSum(c, &cost2));
-  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost2: %f\n", cost2));
   *cost = cost1 + cost2;
 
   PetscCall(VecDestroy(&c));
@@ -488,13 +486,14 @@ PetscErrorCode optimalCriteria(PCCtx *s_ctx, Vec x, Vec dc,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode computeCost1(PCCtx *s_ctx, Vec t, Vec c) {
+PetscErrorCode computeCost1(PCCtx *s_ctx, Vec t) {
   PetscFunctionBeginUser;
   PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez, i;
   PetscScalar ***arrayt, ***arrayc, ***arr_kappa_3d[DIM];
   Vec t_loc;
+  Vec c;
   Vec kappa_loc[DIM];
-
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &c));
   PetscCall(
       DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
 
@@ -560,7 +559,7 @@ PetscErrorCode computeCost1(PCCtx *s_ctx, Vec t, Vec c) {
   for (i = 0; i < DIM; ++i) {
     PetscCall(VecDestroy(&kappa_loc[i]));
   }
-
+  PetscCall(VecDestroy(&c));
   PetscFunctionReturn(0);
 }
 
