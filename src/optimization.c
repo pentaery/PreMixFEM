@@ -634,16 +634,17 @@ PetscErrorCode formRHStest(PCCtx *s_ctx, Vec rhs, Vec x) {
             PetscExpReal(((ez + 0.5) * s_ctx->H_z)) *
             (2 * PETSC_PI * PETSC_PI - 1);
         if (ez == 0) {
-          array[ez][ey][ex] += 2 * arraykappa[ez][ey][ex] * s_ctx->H_x *
-                               s_ctx->H_y / s_ctx->H_z *
-                               PetscCosReal((ex + 0.5) * s_ctx->H_x) *
-                               PetscCosReal((ey + 0.5) * s_ctx->H_y);
+          array[ez][ey][ex] +=
+              2 * arraykappa[ez][ey][ex] * s_ctx->H_x * s_ctx->H_y /
+              s_ctx->H_z * PetscCosReal(PETSC_PI * (ex + 0.5) * s_ctx->H_x) *
+              PetscCosReal(PETSC_PI * (ey + 0.5) * s_ctx->H_y);
         }
         if (ez == s_ctx->P - 1) {
-          array[ez][ey][ex] -=
+          array[ez][ey][ex] +=
               2 * arraykappa[ez][ey][ex] * s_ctx->H_x * s_ctx->H_y /
-              s_ctx->H_z * PetscCosReal((ex + 0.5) * s_ctx->H_x) *
-              PetscCosReal((ey + 0.5) * s_ctx->H_y) * PetscExpReal(1);
+              s_ctx->H_z * PetscCosReal(PETSC_PI * (ex + 0.5) * s_ctx->H_x) *
+              PetscCosReal(PETSC_PI * (ey + 0.5) * s_ctx->H_y) *
+              PetscExpReal(1);
         }
       }
     }
@@ -724,8 +725,7 @@ PetscErrorCode formMatrixtest(PCCtx *s_ctx, Mat A) {
 
           val_A[0][0] = 2 * s_ctx->H_x * s_ctx->H_y / s_ctx->H_z *
                         arr_kappa_3d[2][ez][ey][ex];
-          PetscCall(MatSetValuesStencil(A, 1, &row[0], 1, &row[0],
-          &val_A[0][0],
+          PetscCall(MatSetValuesStencil(A, 1, &row[0], 1, &row[0], &val_A[0][0],
                                         ADD_VALUES));
         }
       }
@@ -759,9 +759,9 @@ PetscErrorCode computeError(PCCtx *s_ctx, Vec t, PetscScalar *error) {
         arraye[ez][ey][ex] =
             PetscPowReal(
                 arrayt[ez][ey][ex] -
-                    PetscCosReal(PETSC_PI * ((ex + 0.5) * s_ctx->H_x)) *
-                        PetscCosReal(PETSC_PI * ((ey + 0.5) * s_ctx->H_y)) *
-                        PetscExpReal(((ez + 0.5) * s_ctx->H_z)),
+                    (PetscCosReal(PETSC_PI * ((ex + 0.5) * s_ctx->H_x)) *
+                     PetscCosReal(PETSC_PI * ((ey + 0.5) * s_ctx->H_y)) *
+                     PetscExpReal(((ez + 0.5) * s_ctx->H_z))),
                 2) *
             s_ctx->H_x * s_ctx->H_y * s_ctx->H_z;
       }

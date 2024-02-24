@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
   PetscCall(
       PetscInitialize(&argc, &argv, (char *)0, "Toplogical Optimiazation\n"));
   PCCtx test;
-  PetscInt mesh[3] = {2, 2, 2};
+  PetscInt mesh[3] = {20, 20, 20};
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
   PetscScalar cost = 0, change = 0, error = 0;
   Mat A;
@@ -37,26 +37,21 @@ int main(int argc, char **argv) {
   PetscCall(formBoundarytest(&test));
   PetscCall(formkappatest(&test, x));
   PetscCall(formMatrixtest(&test, A));
-  PetscCall(MatView(A, PETSC_VIEWER_STDOUT_WORLD));
+
   PetscCall(formRHStest(&test, rhs, x));
   PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
   PetscCall(KSPSetOperators(ksp, A, A));
   PetscCall(KSPSetFromOptions(ksp));
   PetscCall(KSPSolve(ksp, rhs, t));
-
-PetscCall(VecView(rhs, PETSC_VIEWER_STDOUT_WORLD));
   PetscCall(computeError(&test, t, &error));
+
+  PetscCall(VecView(t, PETSC_VIEWER_STDOUT_WORLD));
   PetscPrintf(PETSC_COMM_WORLD, "Error: %f\n", error);
-  // PetscCall(VecView(t, PETSC_VIEWER_STDOUT_WORLD));
   PetscCall(MatDestroy(&A));
   PetscCall(VecDestroy(&rhs));
   PetscCall(VecDestroy(&t));
   PetscCall(VecDestroy(&dc));
   PetscCall(VecDestroy(&x));
   PetscCall(KSPDestroy(&ksp));
-
-
-
-  
   PetscCall(PetscFinalize());
 }
