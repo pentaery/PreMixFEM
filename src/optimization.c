@@ -26,10 +26,12 @@ PetscErrorCode formBoundary(PCCtx *s_ctx) {
   for (ez = startz; ez < startz + nz; ++ez) {
     for (ey = starty; ey < starty + ny; ++ey) {
       for (ex = startx; ex < startx + nx; ++ex) {
-        if (ex >= 0.45 * s_ctx->M && ex <= 0.55 * s_ctx->M &&
-            ey >= 0.45 * s_ctx->N && ey <= 0.55 * s_ctx->N && ez == 0) {
+        if (ex >= PetscFloorReal(0.45 * s_ctx->M) &&
+            ex <= PetscCeilReal(0.55 * s_ctx->M) &&
+            ey >= PetscFloorReal(0.45 * s_ctx->N) &&
+            ey <= PetscCeilReal(0.55 * s_ctx->N) && ez == 0) {
           array[ez][ey][ex] = 1;
-          PetscPrintf(PETSC_COMM_SELF, "BOUNDARY: %d %d %d\n", ex, ey, ez);
+          // PetscPrintf(PETSC_COMM_SELF, "BOUNDARY: %d %d %d\n", ex, ey, ez);
         } else {
           array[ez][ey][ex] = 0;
         }
@@ -173,11 +175,11 @@ PetscErrorCode formRHS(PCCtx *s_ctx, Vec rhs, Vec x) {
   for (ez = startz; ez < startz + nz; ++ez)
     for (ey = starty; ey < starty + ny; ey++) {
       for (ex = startx; ex < startx + nx; ex++) {
-        array[ez][ey][ex] +=
-            s_ctx->H_x*s_ctx->H_y*s_ctx->H_z*(1 - PetscPowScalar(arrayx[ez][ey][ex], 3));
+        // array[ez][ey][ex] += s_ctx->H_x * s_ctx->H_y * s_ctx->H_z *
+        //                      (1 - PetscPowScalar(arrayx[ez][ey][ex], 3));
         if (arrayBoundary[ez][ey][ex] == 1) {
           array[ez][ey][ex] += 2 * arraykappa[ez][ey][ex] * tD * s_ctx->H_x *
-                              s_ctx->H_y / s_ctx->H_z;
+                               s_ctx->H_y / s_ctx->H_z;
         }
       }
     }
@@ -497,6 +499,7 @@ PetscErrorCode computeCost1(PCCtx *s_ctx, Vec t, PetscScalar *cost) {
   Vec c;
   Vec kappa_loc[DIM];
   PetscCall(DMCreateGlobalVector(s_ctx->dm, &c));
+  PetscCall(VecSet(c, 0));
   PetscCall(
       DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
 
@@ -578,6 +581,9 @@ PetscErrorCode formBoundarytest(PCCtx *s_ctx) {
     for (ey = starty; ey < starty + ny; ++ey) {
       for (ex = startx; ex < startx + nx; ++ex) {
         if (ez == 0 || ez == s_ctx->P - 1) {
+          array[ez][ey][ex] = 1;
+        }
+        else {
           array[ez][ey][ex] = 0;
         }
       }

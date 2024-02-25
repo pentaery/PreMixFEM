@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
   PetscCall(
       PetscInitialize(&argc, &argv, (char *)0, "Toplogical Optimiazation\n"));
   PCCtx test;
-  PetscInt mesh[3] = {9, 9, 9};
+  PetscInt mesh[3] = {3, 3, 3};
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
   PetscScalar cost = 0, change = 0, error = 0;
   Mat A;
@@ -34,11 +34,6 @@ int main(int argc, char **argv) {
   PetscCall(VecSet(x, 0.5));
   PetscCall(DMCreateGlobalVector(test.dm, &t));
   PetscCall(DMCreateGlobalVector(test.dm, &dc));
- 
-  // PetscCall(formBoundarytest(&test));
-  // PetscCall(formkappatest(&test, x));
-  // PetscCall(formMatrixtest(&test, A));
-  // PetscCall(formRHStest(&test, rhs, x));
 
   PetscCall(formBoundary(&test));
   PetscCall(formkappa(&test, x));
@@ -49,7 +44,8 @@ int main(int argc, char **argv) {
   PetscCall(KSPSetOperators(ksp, A, A));
   PetscCall(KSPSetFromOptions(ksp));
   PetscCall(KSPSolve(ksp, rhs, t));
-
+  PetscCall(VecView(rhs, PETSC_VIEWER_STDOUT_WORLD));
+  PetscCall(VecView(t, PETSC_VIEWER_STDOUT_WORLD));
   // PetscCall(computeError(&test, t, &error));
   // PetscPrintf(PETSC_COMM_WORLD, "Error: %f\n", error);
 
