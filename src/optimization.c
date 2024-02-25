@@ -26,8 +26,10 @@ PetscErrorCode formBoundary(PCCtx *s_ctx) {
   for (ez = startz; ez < startz + nz; ++ez) {
     for (ey = starty; ey < starty + ny; ++ey) {
       for (ex = startx; ex < startx + nx; ++ex) {
-        if (ex >= 13 && ex <= 16 && ey >= 13 && ey <= 16 && ez == 0) {
+        if (ex >= 0.45 * s_ctx->M && ex <= 0.55 * s_ctx->M &&
+            ey >= 0.45 * s_ctx->N && ey <= 0.55 * s_ctx->N && ez == 0) {
           array[ez][ey][ex] = 1;
+          PetscPrintf(PETSC_COMM_SELF, "BOUNDARY: %d %d %d\n", ex, ey, ez);
         } else {
           array[ez][ey][ex] = 0;
         }
@@ -172,9 +174,9 @@ PetscErrorCode formRHS(PCCtx *s_ctx, Vec rhs, Vec x) {
     for (ey = starty; ey < starty + ny; ey++) {
       for (ex = startx; ex < startx + nx; ex++) {
         array[ez][ey][ex] +=
-            1 - arrayx[ez][ey][ex] * arrayx[ez][ey][ex] * arrayx[ez][ey][ex];
+            s_ctx->H_x*s_ctx->H_y*s_ctx->H_z*(1 - PetscPowScalar(arrayx[ez][ey][ex], 3));
         if (arrayBoundary[ez][ey][ex] == 1) {
-          array[ez][ey][ex] = 2 * arraykappa[ez][ey][ex] * tD * s_ctx->H_x *
+          array[ez][ey][ex] += 2 * arraykappa[ez][ey][ex] * tD * s_ctx->H_x *
                               s_ctx->H_y / s_ctx->H_z;
         }
       }
@@ -188,8 +190,7 @@ PetscErrorCode formRHS(PCCtx *s_ctx, Vec rhs, Vec x) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode computeCost(PCCtx *s_ctx, Mat A, Vec t, Vec rhs,
-                           PetscScalar *cost) {
+PetscErrorCode computeCost(PCCtx *s_ctx, Vec t, Vec rhs, PetscScalar *cost) {
   PetscFunctionBeginUser;
   PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
   Vec c;
@@ -222,6 +223,8 @@ PetscErrorCode computeCost(PCCtx *s_ctx, Mat A, Vec t, Vec rhs,
       DMDAVecRestoreArrayRead(s_ctx->dm, s_ctx->boundary, &arrayBoundary));
 
   PetscCall(VecSum(c, &cost2));
+  PetscCall(
+      PetscPrintf(PETSC_COMM_WORLD, "cost1: %f, cost2: %f\n", cost1, cost2));
   *cost = cost1 + cost2;
 
   PetscCall(VecDestroy(&c));
@@ -486,10 +489,10 @@ PetscErrorCode optimalCriteria(PCCtx *s_ctx, Vec x, Vec dc,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode computeCost1(PCCtx *s_ctx, Vec t) {
+PetscErrorCode computeCost1(PCCtx *s_ctx, Vec t, PetscScalar *cost) {
   PetscFunctionBeginUser;
   PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez, i;
-  PetscScalar ***arrayt, ***arrayc, ***arr_kappa_3d[DIM];
+  PetscScalar ***arrayt, ***arrayc, ***arrayBoundary, ***arr_kappa_3d[DIM];
   Vec t_loc;
   Vec c;
   Vec kappa_loc[DIM];
@@ -506,7 +509,7 @@ PetscErrorCode computeCost1(PCCtx *s_ctx, Vec t) {
                               kappa_loc[i]));
     PetscCall(DMDAVecGetArrayRead(s_ctx->dm, kappa_loc[i], &arr_kappa_3d[i]));
   }
-
+  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, s_ctx->boundary, &arrayBoundary));
   PetscCall(DMDAVecGetArray(s_ctx->dm, c, &arrayc));
 
   for (ez = startz; ez < startz + nz; ++ez) {
@@ -534,11 +537,7 @@ PetscErrorCode computeCost1(PCCtx *s_ctx, Vec t) {
                                  1 / arr_kappa_3d[2][ez - 1][ey][ex]);
         }
 
-        if (ex >= PetscFloorReal((0.5 - s_ctx->lengthportion / 2) * s_ctx->M) &&
-            ex <= PetscCeilReal((0.5 + s_ctx->lengthportion / 2) * s_ctx->M) &&
-            ey >= PetscFloorReal((0.5 - s_ctx->widthportion / 2) * s_ctx->M) &&
-            ey <= PetscCeilReal((0.5 + s_ctx->widthportion / 2) * s_ctx->M) &&
-            ez == 0) {
+        if (arrayBoundary[ez][ey][ex] == 1) {
           arrayc[ez][ey][ex] += 2 * s_ctx->H_x * s_ctx->H_y / s_ctx->H_z *
                                 (arrayt[ez][ey][ex] - tD) *
                                 (arrayt[ez][ey][ex] - tD) *
@@ -554,6 +553,10 @@ PetscErrorCode computeCost1(PCCtx *s_ctx, Vec t) {
     PetscCall(
         DMDAVecRestoreArrayRead(s_ctx->dm, kappa_loc[i], &arr_kappa_3d[i]));
   }
+  PetscCall(
+      DMDAVecRestoreArrayRead(s_ctx->dm, s_ctx->boundary, &arrayBoundary));
+
+  PetscCall(VecSum(c, cost));
 
   PetscCall(VecDestroy(&t_loc));
   for (i = 0; i < DIM; ++i) {

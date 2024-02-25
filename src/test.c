@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
   PetscCall(
       PetscInitialize(&argc, &argv, (char *)0, "Toplogical Optimiazation\n"));
   PCCtx test;
-  PetscInt mesh[3] = {3, 3, 3};
+  PetscInt mesh[3] = {20, 20, 20};
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
   PetscScalar cost = 0, change = 0, error = 0;
   Mat A;
@@ -31,25 +31,32 @@ int main(int argc, char **argv) {
   PetscCall(DMCreateMatrix(test.dm, &A));
   PetscCall(DMCreateGlobalVector(test.dm, &rhs));
   PetscCall(DMCreateGlobalVector(test.dm, &x));
+  PetscCall(VecSet(x, 0.5));
   PetscCall(DMCreateGlobalVector(test.dm, &t));
   PetscCall(DMCreateGlobalVector(test.dm, &dc));
+ 
+  // PetscCall(formBoundarytest(&test));
+  // PetscCall(formkappatest(&test, x));
+  // PetscCall(formMatrixtest(&test, A));
+  // PetscCall(formRHStest(&test, rhs, x));
 
-  PetscCall(formBoundarytest(&test));
-  PetscCall(formkappatest(&test, x));
-  PetscCall(formMatrixtest(&test, A));
+  PetscCall(formBoundary(&test));
+  PetscCall(formkappa(&test, x));
+  PetscCall(formMatrix(&test, A));
+  PetscCall(formRHS(&test, rhs, x));
 
-  PetscCall(formRHStest(&test, rhs, x));
   PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
   PetscCall(KSPSetOperators(ksp, A, A));
   PetscCall(KSPSetFromOptions(ksp));
   PetscCall(KSPSolve(ksp, rhs, t));
-  PetscCall(computeError(&test, t, &error));
-  PetscPrintf(PETSC_COMM_WORLD, "Error: %f\n", error);
 
-  PetscCall(computeCost(&test, A, t, rhs, &cost));
+  // PetscCall(computeError(&test, t, &error));
+  // PetscPrintf(PETSC_COMM_WORLD, "Error: %f\n", error);
+
+  PetscCall(computeCost(&test, t, rhs, &cost));
   PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost);
-
-
+  PetscCall(computeCost1(&test, t, &cost));
+  PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost);
   PetscCall(MatDestroy(&A));
   PetscCall(VecDestroy(&rhs));
   PetscCall(VecDestroy(&t));
