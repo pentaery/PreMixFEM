@@ -26,6 +26,10 @@ PetscErrorCode computeCost(PCCtx *s_ctx, Vec t, Vec rhs,
                            PetscScalar *cost);
 PetscErrorCode optimalCriteria(PCCtx *s_ctx, Vec x, Vec dc,
                                PetscScalar *change);
+PetscErrorCode mma(PCCtx *s_ctx, Vec x, Vec dc,
+                               PetscScalar *change);
+PetscErrorCode genoptimalCriteria(PCCtx *s_ctx, Vec x, Vec dc,
+                               PetscScalar *change);
 PetscErrorCode computeCost1(PCCtx *s_ctx, Vec t, PetscScalar *cost);
 
 PetscErrorCode formBoundarytest(PCCtx *s_ctx);

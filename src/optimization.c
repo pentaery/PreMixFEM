@@ -31,7 +31,7 @@ PetscErrorCode formBoundary(PCCtx *s_ctx) {
             ey >= PetscFloorReal(0.45 * s_ctx->N) &&
             ey <= PetscCeilReal(0.55 * s_ctx->N) && ez == 0) {
           array[ez][ey][ex] = 1;
-          // PetscPrintf(PETSC_COMM_SELF, "BOUNDARY: %d %d %d\n", ex, ey, ez);
+          PetscPrintf(PETSC_COMM_SELF, "BOUNDARY: %d %d %d\n", ex, ey, ez);
         } else {
           array[ez][ey][ex] = 0;
         }
@@ -175,8 +175,8 @@ PetscErrorCode formRHS(PCCtx *s_ctx, Vec rhs, Vec x) {
   for (ez = startz; ez < startz + nz; ++ez)
     for (ey = starty; ey < starty + ny; ey++) {
       for (ex = startx; ex < startx + nx; ex++) {
-        // array[ez][ey][ex] += s_ctx->H_x * s_ctx->H_y * s_ctx->H_z *
-        //                      (1 - PetscPowScalar(arrayx[ez][ey][ex], 3));
+        array[ez][ey][ex] += s_ctx->H_x * s_ctx->H_y * s_ctx->H_z *
+                             (1 - PetscPowScalar(arrayx[ez][ey][ex], 3));
         if (arrayBoundary[ez][ey][ex] == 1) {
           array[ez][ey][ex] += 2 * arraykappa[ez][ey][ex] * tD * s_ctx->H_x *
                                s_ctx->H_y / s_ctx->H_z;
@@ -212,7 +212,7 @@ PetscErrorCode computeCost(PCCtx *s_ctx, Vec t, Vec rhs, PetscScalar *cost) {
     for (ey = starty; ey < starty + ny; ++ey) {
       for (ex = startx; ex < startx + nx; ++ex) {
         if (arrayBoundary[ez][ey][ex] == 1) {
-          arraycost[ez][ey][ex] += s_ctx->H_x * s_ctx->H_y * s_ctx->H_z * tD *
+          arraycost[ez][ey][ex] += s_ctx->H_x * s_ctx->H_y / s_ctx->H_z * tD *
                                    (tD - 2 * arrayt[ez][ey][ex]);
         }
       }
@@ -381,6 +381,7 @@ PetscErrorCode filter(PCCtx *s_ctx, Vec dc, Vec x) {
     for (ey = starty; ey < starty + ny; ++ey) {
       for (ex = startx; ex < startx + nx; ++ex) {
         arraydcn[ez][ey][ex] += rmin * arraydc[ez][ey][ex] * arrayx[ez][ey][ex];
+        arraycoef[ez][ey][ex] += rmin * arrayx[ez][ey][ex];
         if (ex >= 1) {
           arraydcn[ez][ey][ex] +=
               (rmin - 1) * arraydc[ez][ey][ex - 1] * arrayx[ez][ey][ex - 1];
@@ -395,8 +396,6 @@ PetscErrorCode filter(PCCtx *s_ctx, Vec dc, Vec x) {
           arraydcn[ez][ey][ex] +=
               (rmin - 1) * arraydc[ez][ey - 1][ex] * arrayx[ez][ey - 1][ex];
           arraycoef[ez][ey][ex] += (rmin - 1) * arrayx[ez][ey][ex];
-          // PetscCall(PetscPrintf(PETSC_COMM_SELF, "%f\n",
-          // arraycoef[ez][ey][ex]));
         }
         if (ey < s_ctx->N - 1) {
           arraydcn[ez][ey][ex] +=
@@ -490,6 +489,15 @@ PetscErrorCode optimalCriteria(PCCtx *s_ctx, Vec x, Vec dc,
   PetscCall(VecDestroy(&xold));
   PetscFunctionReturn(0);
 }
+PetscErrorCode mma(PCCtx *s_ctx, Vec x, Vec dc, PetscScalar *change) {
+  PetscFunctionBeginUser;
+  PetscFunctionReturn(0);
+}
+PetscErrorCode genoptimalCriteria(PCCtx *s_ctx, Vec x, Vec dc,
+                                  PetscScalar *change) {
+  PetscFunctionBeginUser;
+  PetscFunctionReturn(0);
+                                  }
 
 PetscErrorCode computeCost1(PCCtx *s_ctx, Vec t, PetscScalar *cost) {
   PetscFunctionBeginUser;

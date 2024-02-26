@@ -46,8 +46,6 @@ int main(int argc, char **argv) {
   PetscCall(KSPSolve(ksp, rhs, t));
   PetscCall(VecView(rhs, PETSC_VIEWER_STDOUT_WORLD));
   PetscCall(VecView(t, PETSC_VIEWER_STDOUT_WORLD));
-  // PetscCall(computeError(&test, t, &error));
-  // PetscPrintf(PETSC_COMM_WORLD, "Error: %f\n", error);
 
   PetscCall(computeCost(&test, t, rhs, &cost));
   PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost);

@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
   PetscCall(
       PetscInitialize(&argc, &argv, (char *)0, "Toplogical Optimiazation\n"));
   PCCtx test;
-  PetscInt mesh[3] = {50, 50, 50};
+  PetscInt mesh[3] = {24, 24, 24};
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
   PetscScalar cost = 0;
   Mat A;
@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
   PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
   PetscCall(KSPSetFromOptions(ksp));
   //   PetscCall(KSPSetUp(ksp));
-  PetscCall(VecSet(x, 0.5));
+  PetscCall(VecSet(x, 0.2));
   PetscCall(formBoundary(&test));
 
   while (change > 0.01) {
