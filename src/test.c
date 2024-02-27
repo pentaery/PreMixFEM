@@ -21,6 +21,7 @@ int main(int argc, char **argv) {
   PetscInt grid = 2;
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-mesh", &grid, NULL));
   PetscInt mesh[3] = {grid, grid, grid};
+  PetscInt iter;
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
   PetscScalar cost = 0, change = 0, error = 0;
   Mat A;
@@ -43,9 +44,15 @@ int main(int argc, char **argv) {
   PetscCall(formRHS(&test, rhs, x));
 
   PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
+  PetscCall(
+      KSPSetTolerances(ksp, 1e-6, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT));
   PetscCall(KSPSetOperators(ksp, A, A));
   PetscCall(KSPSetFromOptions(ksp));
   PetscCall(KSPSolve(ksp, rhs, t));
+  PetscCall(KSPGetResidualNorm(ksp, &error));
+  PetscCall(KSPGetIterationNumber(ksp, &iter));
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "residual norm: %f\n", error));
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "iteration number: %d\n", iter));
   // PetscCall(VecView(rhs, PETSC_VIEWER_STDOUT_WORLD));
   // PetscCall(VecView(t, PETSC_VIEWER_STDOUT_WORLD));
 
