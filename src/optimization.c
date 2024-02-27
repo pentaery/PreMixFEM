@@ -27,9 +27,9 @@ PetscErrorCode formBoundary(PCCtx *s_ctx) {
     for (ey = starty; ey < starty + ny; ++ey) {
       for (ex = startx; ex < startx + nx; ++ex) {
         if (ex >= PetscFloorReal(0.45 * s_ctx->M) &&
-            ex <= PetscCeilReal(0.55 * s_ctx->M) &&
+            ex <= PetscCeilReal(0.55 * s_ctx->M) - 1 &&
             ey >= PetscFloorReal(0.45 * s_ctx->N) &&
-            ey <= PetscCeilReal(0.55 * s_ctx->N) && ez == 0) {
+            ey <= PetscCeilReal(0.55 * s_ctx->N) - 1 && ez == 0) {
           array[ez][ey][ex] = 1;
           // PetscPrintf(PETSC_COMM_SELF, "BOUNDARY: %d %d %d\n", ex, ey, ez);
         } else {

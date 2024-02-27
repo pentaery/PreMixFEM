@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
   PetscCall(
       PetscInitialize(&argc, &argv, (char *)0, "Toplogical Optimiazation\n"));
   PCCtx test;
-  PetscInt mesh[3] = {50, 50, 50};
+  PetscInt mesh[3] = {12, 12, 12};
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
   PetscScalar cost = 0;
   Mat A;
@@ -42,14 +42,14 @@ int main(int argc, char **argv) {
       KSPSetTolerances(ksp, 1e-6, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT));
   PetscCall(KSPSetFromOptions(ksp));
   //   PetscCall(KSPSetUp(ksp));
-  PetscCall(VecSet(x, 0.2));
+  PetscCall(VecSet(x, 0.1));
   PetscCall(formBoundary(&test));
 
   while (change > 0.01) {
     loop += 1;
 
     PetscViewer viewer;
-    sprintf(str, "../data/output/change%02d.vtr", loop);
+    sprintf(str, "../data/output/change%03d.vtr", loop);
     PetscCall(
         PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
     PetscCall(VecView(x, viewer));
