@@ -7,6 +7,7 @@
 #include <petscerror.h>
 #include <petscksp.h>
 #include <petscmat.h>
+#include <petscoptions.h>
 #include <petscsys.h>
 #include <petscsystypes.h>
 #include <petscvec.h>
@@ -17,7 +18,9 @@ int main(int argc, char **argv) {
   PetscCall(
       PetscInitialize(&argc, &argv, (char *)0, "Toplogical Optimiazation\n"));
   PCCtx test;
-  PetscInt mesh[3] = {12, 12, 12};
+  PetscInt grid = 20;
+  PetscCall(PetscOptionsGetInt(NULL, NULL, "-mesh", &grid, NULL));
+  PetscInt mesh[3] = {grid, grid, grid};
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
   PetscScalar cost = 0;
   Mat A;

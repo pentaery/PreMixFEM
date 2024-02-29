@@ -456,15 +456,16 @@ PetscErrorCode optimalCriteria(PCCtx *s_ctx, Vec x, Vec dc,
     for (ez = startz; ez < startz + nz; ++ez) {
       for (ey = starty; ey < starty + ny; ++ey) {
         for (ex = startx; ex < startx + nx; ++ex) {
-          if (arrayx[ez][ey][ex] * arraydc[ez][ey][ex] / lmid <
+          if (arrayx[ez][ey][ex] * PetscSqrtScalar(arraydc[ez][ey][ex] / lmid) <
               PetscMax(0.001, arrayx[ez][ey][ex] - move)) {
             arrayx[ez][ey][ex] = PetscMax(0.001, arrayx[ez][ey][ex] - move);
-          } else if (arrayx[ez][ey][ex] * arraydc[ez][ey][ex] / lmid >
+          } else if (arrayx[ez][ey][ex] *
+                         PetscSqrtScalar(arraydc[ez][ey][ex] / lmid) >
                      PetscMin(1, arrayx[ez][ey][ex] + move)) {
             arrayx[ez][ey][ex] = PetscMin(1, arrayx[ez][ey][ex] + move);
           } else {
-            arrayx[ez][ey][ex] =
-                arrayx[ez][ey][ex] * arraydc[ez][ey][ex] / lmid;
+            arrayx[ez][ey][ex] = arrayx[ez][ey][ex] *
+                                 PetscSqrtScalar(arraydc[ez][ey][ex] / lmid);
           }
         }
       }
