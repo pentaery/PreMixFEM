@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
     loop += 1;
 
     PetscViewer viewer;
-    sprintf(str, "../data/output/change%03d.vtr", loop);
+    sprintf(str, "../data/output/change%04d.vtr", loop);
     PetscCall(
         PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
     PetscCall(VecView(x, viewer));

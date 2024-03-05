@@ -50,7 +50,7 @@ endif (CXX_FLAGS)
 project(PreMixFEM)
 set(SOURCES 
  src/PreMixFEM_3D.c
- src/testkappa.c
+ src/demo.c
  src/optimization.c
 )
 SET(OUTPUT_NAME test)

@@ -13,7 +13,7 @@
 #include <petscviewer.h>
 
 #define tD 1e2
-#define rmin 1.1
+#define rmin 1.2
 #define volfrac 0.1
 #define cr 6
 PetscErrorCode formBoundary(PCCtx *s_ctx);
@@ -26,7 +26,7 @@ PetscErrorCode computeCost(PCCtx *s_ctx, Vec t, Vec rhs, PetscScalar *cost);
 PetscErrorCode optimalCriteria(PCCtx *s_ctx, Vec x, Vec dc,
                                PetscScalar *change);
 PetscErrorCode mma(PCCtx *s_ctx, Vec x, Vec dc, PetscScalar *change);
-PetscErrorCode genoptimalCriteria(PCCtx *s_ctx, Vec x, Vec dc,
+PetscErrorCode genOptimalCriteria(PCCtx *s_ctx, Vec x, Vec dc,
                                   PetscScalar *change);
 PetscErrorCode computeCost1(PCCtx *s_ctx, Vec t, PetscScalar *cost);
 

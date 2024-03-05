@@ -495,9 +495,10 @@ PetscErrorCode mma(PCCtx *s_ctx, Vec x, Vec dc, PetscScalar *change) {
   PetscFunctionBeginUser;
   PetscFunctionReturn(0);
 }
-PetscErrorCode genoptimalCriteria(PCCtx *s_ctx, Vec x, Vec dc,
+PetscErrorCode genOptimalCriteria(PCCtx *s_ctx, Vec x, Vec dc,
                                   PetscScalar *change) {
   PetscFunctionBeginUser;
+  
   PetscFunctionReturn(0);
 }
 
