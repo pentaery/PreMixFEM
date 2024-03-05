@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
 
   PetscCall(formBoundarytest(&test));
   PetscCall(formkappatest(&test, x));
-  PetscCall(formMatrix(&test, A));
+  PetscCall(formMatrixtest(&test, A));
   PetscCall(formRHStest(&test, rhs, x));
 
   PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
@@ -52,7 +52,6 @@ int main(int argc, char **argv) {
   PetscCall(KSPSetFromOptions(ksp));
   PetscCall(KSPSolve(ksp, rhs, t));
 
-  // PetscCall(VecView(t, PETSC_VIEWER_STDOUT_WORLD));
   PetscCall(computeError(&test, t, &error));
   PetscPrintf(PETSC_COMM_WORLD, "Error: %f\n", error);
 
@@ -64,6 +63,7 @@ int main(int argc, char **argv) {
   PetscCall(KSPDestroy(&ksp));
   PetscCall(PetscFinalize());
 }
+
 PetscErrorCode formBoundarytest(PCCtx *s_ctx) {
   PetscFunctionBeginUser;
   PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
@@ -102,7 +102,13 @@ PetscErrorCode formkappatest(PCCtx *s_ctx, Vec x) {
     for (ey = starty; ey < starty + ny; ++ey) {
       for (ex = startx; ex < startx + nx; ++ex) {
         for (i = 0; i < DIM; ++i) {
-          arraykappa[i][ez][ey][ex] = 1;
+          if (i == 0) {
+            arraykappa[0][ez][ey][ex] = (ex + 0.5) * s_ctx->H_x;
+          } else if (i == 1) {
+            arraykappa[1][ez][ey][ex] = (ey + 0.5) * s_ctx->H_y;
+          } else {
+            arraykappa[2][ez][ey][ex] = (ez + 0.5) * s_ctx->H_z;
+          }
         }
       }
     }
@@ -131,10 +137,20 @@ PetscErrorCode formRHStest(PCCtx *s_ctx, Vec rhs, Vec x) {
       for (ex = startx; ex < startx + nx; ++ex) {
         array[ez][ey][ex] +=
             s_ctx->H_x * s_ctx->H_y * s_ctx->H_z *
-            PetscCosReal(PETSC_PI * ((ex + 0.5) * s_ctx->H_x)) *
-            PetscCosReal(PETSC_PI * ((ey + 0.5) * s_ctx->H_y)) *
-            PetscExpReal(((ez + 0.5) * s_ctx->H_z)) *
-            (2 * PETSC_PI * PETSC_PI - 1);
+                PetscCosReal(PETSC_PI * ((ex + 0.5) * s_ctx->H_x)) *
+                PetscCosReal(PETSC_PI * ((ey + 0.5) * s_ctx->H_y)) *
+                PetscExpReal(((ez + 0.5) * s_ctx->H_z)) *
+                (PETSC_PI * PETSC_PI *
+                     ((ex + 0.5) * s_ctx->H_x + (ey + 0.5) * s_ctx->H_y) -
+                 (ez + 0.5) * s_ctx->H_z - 1) +
+            s_ctx->H_x * s_ctx->H_y * s_ctx->H_z * PETSC_PI *
+                PetscCosReal(PETSC_PI * (ex + 0.5) * s_ctx->H_x) *
+                PetscSinReal(PETSC_PI * (ey + 0.5) * s_ctx->H_y) *
+                PetscExpReal(((ez + 0.5) * s_ctx->H_z)) +
+            s_ctx->H_x * s_ctx->H_y * s_ctx->H_z * PETSC_PI *
+                PetscSinReal(PETSC_PI * (ex + 0.5) * s_ctx->H_x) *
+                PetscCosReal(PETSC_PI * (ey + 0.5) * s_ctx->H_y) *
+                PetscExpReal(((ez + 0.5) * s_ctx->H_z));
         if (ez == 0) {
           array[ez][ey][ex] +=
               2 * arraykappa[ez][ey][ex] * s_ctx->H_x * s_ctx->H_y /
