@@ -196,9 +196,10 @@ PetscErrorCode computeCost(PCCtx *s_ctx, Vec t, Vec rhs, PetscScalar *cost) {
   PetscFunctionBeginUser;
   PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
   Vec c;
-  PetscScalar cost1, cost2;
+  PetscScalar cost1 = 0, cost2 = 0;
   PetscScalar ***arrayt, ***arraycost, ***arrayBoundary, ***arraykappa;
   PetscCall(VecDot(rhs, t, &cost1));
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost1: %f\n", cost1));
   PetscCall(DMCreateGlobalVector(s_ctx->dm, &c));
   PetscCall(VecSet(c, 0));
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, t, &arrayt));
@@ -213,9 +214,9 @@ PetscErrorCode computeCost(PCCtx *s_ctx, Vec t, Vec rhs, PetscScalar *cost) {
     for (ey = starty; ey < starty + ny; ++ey) {
       for (ex = startx; ex < startx + nx; ++ex) {
         if (arrayBoundary[ez][ey][ex] > 0.5) {
-          arraycost[ez][ey][ex] += 2 * arraykappa[ez][ey][ex] * s_ctx->H_x *
-                                   s_ctx->H_y / s_ctx->H_z * tD *
-                                   (tD - 2 * arrayt[ez][ey][ex]);
+          arraycost[ez][ey][ex] = 2 * arraykappa[ez][ey][ex] * s_ctx->H_x *
+                                  s_ctx->H_y / s_ctx->H_z * tD *
+                                  (tD - 2 * arrayt[ez][ey][ex]);
         }
       }
     }
@@ -228,6 +229,7 @@ PetscErrorCode computeCost(PCCtx *s_ctx, Vec t, Vec rhs, PetscScalar *cost) {
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, s_ctx->kappa[2], &arraykappa));
 
   PetscCall(VecSum(c, &cost2));
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost2: %f\n", cost2));
   *cost = cost1 + cost2;
 
   PetscCall(VecDestroy(&c));
@@ -495,10 +497,63 @@ PetscErrorCode mma(PCCtx *s_ctx, Vec x, Vec dc, PetscScalar *change) {
   PetscFunctionBeginUser;
   PetscFunctionReturn(0);
 }
-PetscErrorCode genOptimalCriteria(PCCtx *s_ctx, Vec x, Vec dc,
-                                  PetscScalar *change) {
+PetscErrorCode genOptimalCriteria(PCCtx *s_ctx, Vec x, Vec dc, PetscScalar *g,
+                                  PetscScalar *glast, PetscScalar *lmid,
+                                  PetscScalar *change, PetscScalar cost0) {
   PetscFunctionBeginUser;
-  
+  Vec xold;
+  PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
+  PetscScalar move = 0.2, eps = 0.05, p0 = 0;
+  PetscScalar ***arraydc, ***arrayx;
+  PetscScalar sum;
+  PetscInt nelm = s_ctx->M * s_ctx->N * s_ctx->P;
+  PetscCall(VecSum(x, &sum));
+  *g = sum / (volfrac * nelm) - 1;
+  PetscScalar dg = *g - *glast;
+  *glast = *g;
+  if ((g > 0 && dg > 0) || (g < 0 && dg < 0)) {
+    p0 = 1.0;
+  } else if ((g > 0 && dg > -eps) || (g < 0 && dg < eps)) {
+    p0 = 0.5;
+  } else {
+    p0 = 0;
+  }
+  *lmid = *lmid * (1 + p0 * (*g + dg));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &xold));
+  PetscCall(VecCopy(x, xold));
+  PetscCall(
+      DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
+  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, dc, &arraydc));
+  PetscCall(DMDAVecGetArray(s_ctx->dm, x, &arrayx));
+
+  for (ez = startz; ez < startz + nz; ++ez) {
+    for (ey = starty; ey < starty + ny; ++ey) {
+      for (ex = startx; ex < startx + nx; ++ex) {
+        if (arrayx[ez][ey][ex] *
+                PetscSqrtScalar(arraydc[ez][ey][ex] / cost0 / (*lmid / nelm)) <
+            PetscMax(0.001, arrayx[ez][ey][ex] - move)) {
+          arrayx[ez][ey][ex] = PetscMax(0.001, arrayx[ez][ey][ex] - move);
+        } else if (arrayx[ez][ey][ex] *
+                       PetscSqrtScalar(arraydc[ez][ey][ex] / cost0 /
+                                       (*lmid / nelm)) >
+                   PetscMin(1, arrayx[ez][ey][ex] + move)) {
+          arrayx[ez][ey][ex] = PetscMin(1, arrayx[ez][ey][ex] + move);
+        } else {
+          arrayx[ez][ey][ex] =
+              arrayx[ez][ey][ex] *
+              PetscSqrtScalar(arraydc[ez][ey][ex] / cost0 / (*lmid / nelm));
+        }
+      }
+    }
+  }
+
+  PetscCall(DMDAVecRestoreArray(s_ctx->dm, x, &arrayx));
+  PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, dc, &arraydc));
+
+  PetscCall(VecAXPY(xold, -1, x));
+  PetscCall(VecMax(xold, NULL, change));
+
+  PetscCall(VecDestroy(&xold));
   PetscFunctionReturn(0);
 }
 
@@ -579,4 +634,3 @@ PetscErrorCode computeCost1(PCCtx *s_ctx, Vec t, PetscScalar *cost) {
   PetscCall(VecDestroy(&c));
   PetscFunctionReturn(0);
 }
-

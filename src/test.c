@@ -49,17 +49,19 @@ int main(int argc, char **argv) {
   PetscCall(KSPSetOperators(ksp, A, A));
   PetscCall(KSPSetFromOptions(ksp));
   PetscCall(KSPSolve(ksp, rhs, t));
-  PetscCall(KSPGetResidualNorm(ksp, &error));
-  PetscCall(KSPGetIterationNumber(ksp, &iter));
-  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "residual norm: %f\n", error));
-  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "iteration number: %d\n", iter));
-  // PetscCall(VecView(rhs, PETSC_VIEWER_STDOUT_WORLD));
-  // PetscCall(VecView(t, PETSC_VIEWER_STDOUT_WORLD));
+  // PetscCall(KSPGetResidualNorm(ksp, &error));
+  // PetscCall(KSPGetIterationNumber(ksp, &iter));
+  // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "residual norm: %f\n", error));
+  // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "iteration number: %d\n", iter));
 
   PetscCall(computeCost(&test, t, rhs, &cost));
   PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost);
   PetscCall(computeCost1(&test, t, &cost));
   PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost);
+  PetscCall(computeGradient(&test, x, t, dc));
+  // PetscCall(VecView(dc, PETSC_VIEWER_STDOUT_WORLD));
+  PetscCall(filter(&test, dc, x));
+  // PetscCall(VecView(dc, PETSC_VIEWER_STDOUT_WORLD));
   PetscCall(MatDestroy(&A));
   PetscCall(VecDestroy(&rhs));
   PetscCall(VecDestroy(&t));

@@ -28,6 +28,7 @@ int main(int argc, char **argv) {
   KSP ksp;
   PetscInt loop = 0, iter = 0;
   PetscScalar change = 1;
+  PetscScalar g = 0, glast = 0, lmid = 1, cost0 = 0;
 
   char str[80];
 
@@ -45,7 +46,7 @@ int main(int argc, char **argv) {
       KSPSetTolerances(ksp, 1e-6, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT));
   PetscCall(KSPSetFromOptions(ksp));
   //   PetscCall(KSPSetUp(ksp));
-  PetscCall(VecSet(x, 0.1));
+  PetscCall(VecSet(x, 0.5));
   PetscCall(formBoundary(&test));
 
   while (change > 0.01) {
@@ -66,12 +67,20 @@ int main(int argc, char **argv) {
     PetscCall(KSPSolve(ksp, rhs, t));
     PetscCall(KSPGetIterationNumber(ksp, &iter));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "iteration number: %d\n", iter));
+    if (loop == 1) {
+      PetscCall(computeCost1(&test, t, &cost0));
+      PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost0: %f\n", cost0));
+    }
     PetscCall(computeCost1(&test, t, &cost));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
+    // PetscCall(computeCost(&test, t, rhs, &cost));
+    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
 
     PetscCall(computeGradient(&test, x, t, dc));
-    // PetscCall(filter(&test, dc, x));
+    PetscCall(filter(&test, dc, x));
     PetscCall(optimalCriteria(&test, x, dc, &change));
+    // PetscCall(
+    //     genOptimalCriteria(&test, x, dc, &g, &glast, &lmid, &change, cost0));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));
   }
 
