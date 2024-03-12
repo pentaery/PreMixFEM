@@ -16,11 +16,16 @@
 #define rmin 1.1
 #define volfrac 0.1
 #define cr 6
+#define f0 1
+#define penal 3
+#define mmas 0.85
+#define mmas0 0.15
 PetscErrorCode formBoundary(PCCtx *s_ctx);
 PetscErrorCode formkappa(PCCtx *s_ctx, Vec x);
 PetscErrorCode formMatrix(PCCtx *s_ctx, Mat A);
 PetscErrorCode formRHS(PCCtx *s_ctx, Vec rhs, Vec x);
 PetscErrorCode computeGradient(PCCtx *s_ctx, Vec x, Vec t, Vec dc);
+PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc);
 PetscErrorCode filter(PCCtx *s_ctx, Vec dc, Vec x);
 PetscErrorCode computeCost(PCCtx *s_ctx, Vec t, Vec rhs, PetscScalar *cost);
 PetscErrorCode optimalCriteria(PCCtx *s_ctx, Vec x, Vec dc,

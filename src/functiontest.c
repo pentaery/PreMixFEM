@@ -35,6 +35,9 @@ int main(int argc, char **argv) {
   PetscCall(DMCreateGlobalVector(test.dm, &rhs));
   PetscCall(DMCreateGlobalVector(test.dm, &x));
   PetscCall(VecSet(x, 0.5));
+  PetscCall(VecSet(rhs, 3.0));
+  PetscCall(VecPointwiseMult(x, x, rhs));
+  PetscCall(VecView(rhs, PETSC_VIEWER_STDOUT_WORLD));
   PetscCall(DMCreateGlobalVector(test.dm, &t));
   PetscCall(DMCreateGlobalVector(test.dm, &dc));
 
@@ -42,20 +45,6 @@ int main(int argc, char **argv) {
   PetscCall(formkappa(&test, x));
   PetscCall(formMatrix(&test, A));
   PetscCall(formRHS(&test, rhs, x));
-
-  PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
-  PetscCall(
-      KSPSetTolerances(ksp, 1e-6, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT));
-  PetscCall(KSPSetOperators(ksp, A, A));
-  PetscCall(KSPSetFromOptions(ksp));
-  PetscCall(KSPSolve(ksp, rhs, t));
-  // PetscCall(KSPGetResidualNorm(ksp, &error));
-  // PetscCall(KSPGetIterationNumber(ksp, &iter));
-  // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "residual norm: %f\n", error));
-  // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "iteration number: %d\n", iter));
-
-  PetscCall(adjointGradient(&test, A, x, t, dc));
-  PetscCall(VecView(dc, PETSC_VIEWER_STDOUT_WORLD));
 
   PetscCall(MatDestroy(&A));
   PetscCall(VecDestroy(&rhs));

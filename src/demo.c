@@ -59,7 +59,6 @@ int main(int argc, char **argv) {
     PetscCall(VecView(x, viewer));
     PetscCall(PetscViewerDestroy(&viewer));
 
-    PetscCall(VecSet(dc, 0));
     PetscCall(formkappa(&test, x));
     PetscCall(formMatrix(&test, A));
     PetscCall(formRHS(&test, rhs, x));
