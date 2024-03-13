@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
   PetscScalar cost = 0;
   Mat A;
-  Vec rhs, t, x, dc;
+  Vec rhs, t, x, dc, mmaL, mmaU;
   KSP ksp;
   PetscInt loop = 0, iter = 0;
   PetscScalar change = 1;
@@ -40,6 +40,8 @@ int main(int argc, char **argv) {
   PetscCall(DMCreateGlobalVector(test.dm, &x));
   PetscCall(DMCreateGlobalVector(test.dm, &t));
   PetscCall(DMCreateGlobalVector(test.dm, &dc));
+  PetscCall(DMCreateGlobalVector(test.dm, &mmaL));
+  PetscCall(DMCreateGlobalVector(test.dm, &mmaU));
 
   PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
   PetscCall(

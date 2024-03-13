@@ -30,8 +30,11 @@ PetscErrorCode filter(PCCtx *s_ctx, Vec dc, Vec x);
 PetscErrorCode computeCost(PCCtx *s_ctx, Vec t, Vec rhs, PetscScalar *cost);
 PetscErrorCode optimalCriteria(PCCtx *s_ctx, Vec x, Vec dc,
                                PetscScalar *change);
-PetscErrorCode mma(PCCtx *s_ctx, Vec x, Vec dc, PetscScalar *change);
+
 PetscErrorCode genOptimalCriteria(PCCtx *s_ctx, Vec x, Vec dc, PetscScalar *g,
                                   PetscScalar *glast, PetscScalar *lmid,
                                   PetscScalar *change, PetscScalar cost0);
 PetscErrorCode computeCost1(PCCtx *s_ctx, Vec t, PetscScalar *cost);
+PetscErrorCode mma(PCCtx *s_ctx,PetscInt loop, Vec x, Vec dc, Vec L, Vec U, PetscScalar *change);
+PetscErrorCode computeDerivative(PetscScalar x, PetscScalar *derivative);
+PetscErrorCode steepestDescent(PetscScalar initial, PetscScalar *final);

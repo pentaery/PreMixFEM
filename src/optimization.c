@@ -490,7 +490,7 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc) {
   PetscCall(DMDAVecRestoreArray(s_ctx->dm, dc, &arraydc));
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, x, &arrayx));
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, t_loc, &arrayt));
-  for(i=0;i<DIM;++i){
+  for (i = 0; i < DIM; ++i) {
     PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, kappa_loc[i], &arraykappa[i]));
     PetscCall(VecDestroy(&kappa_loc[i]));
   }
@@ -636,10 +636,7 @@ PetscErrorCode optimalCriteria(PCCtx *s_ctx, Vec x, Vec dc,
   PetscCall(VecDestroy(&xold));
   PetscFunctionReturn(0);
 }
-PetscErrorCode mma(PCCtx *s_ctx, Vec x, Vec dc, PetscScalar *change) {
-  PetscFunctionBeginUser;
-  PetscFunctionReturn(0);
-}
+
 PetscErrorCode genOptimalCriteria(PCCtx *s_ctx, Vec x, Vec dc, PetscScalar *g,
                                   PetscScalar *glast, PetscScalar *lmid,
                                   PetscScalar *change, PetscScalar cost0) {
@@ -775,5 +772,33 @@ PetscErrorCode computeCost1(PCCtx *s_ctx, Vec t, PetscScalar *cost) {
     PetscCall(VecDestroy(&kappa_loc[i]));
   }
   PetscCall(VecDestroy(&c));
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode mma(PCCtx *s_ctx, PetscInt loop, Vec x, Vec dc, Vec L, Vec U, PetscScalar *change) {
+  PetscFunctionBeginUser;
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode steepestDescent(PetscScalar initial, PetscScalar *final) {
+  PetscFunctionBeginUser;
+  PetscScalar derivative = 0, x = initial;
+  PetscCall(computeDerivative(x, &derivative));
+  while (PetscAbsScalar(derivative) > 1e-6) {
+    PetscCall(computeDerivative(x, &derivative));
+    if (derivative > 0) {
+      x = x + 0.5 * derivative;
+    } else {
+      x = x - 0.5 * derivative;
+    }
+  }
+  *final = x;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode computeDerivative(PetscScalar x, PetscScalar *derivative) {
+  PetscFunctionBeginUser;
+  *derivative = 3 * PetscCosScalar(x) + x / 10;
   PetscFunctionReturn(0);
 }
