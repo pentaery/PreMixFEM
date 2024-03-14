@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-mesh", &grid, NULL));
   PetscInt mesh[3] = {grid, grid, grid};
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
-  PetscScalar cost = 0;
+  PetscScalar cost = 0, derivative = 0;
   Mat A;
   Vec rhs, t, x, dc, mmaL, mmaLlast, mmaU, mmaUlast, xlast, xllast, xlllast,
       lbd, ubd, alpha, beta;
@@ -66,12 +66,14 @@ int main(int argc, char **argv) {
 
   while (change > 0.01) {
     loop += 1;
+
     PetscViewer viewer;
     sprintf(str, "../data/output/change%04d.vtr", loop);
     PetscCall(
         PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
     PetscCall(VecView(x, viewer));
     PetscCall(PetscViewerDestroy(&viewer));
+
     PetscCall(formLimit(&test, loop, xlast, xllast, xlllast, mmaL, mmaU,
                         mmaLlast, mmaUlast, alpha, beta, lbd, ubd));
     PetscCall(formkappa(&test, x));
@@ -87,14 +89,14 @@ int main(int argc, char **argv) {
     }
     PetscCall(computeCost1(&test, t, &cost));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
-    // PetscCall(computeCost(&test, t, rhs, &cost));
-    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
 
-    PetscCall(computeGradient(&test, x, t, dc));
-    PetscCall(filter(&test, dc, x));
-    PetscCall(optimalCriteria(&test, x, dc, &change));
-    // PetscCall(
-    //     genOptimalCriteria(&test, x, dc, &g, &glast, &lmid, &change, cost0));
+    PetscCall(adjointGradient(&test, A, x, t, dc));
+    
+    PetscCall(VecCopy(mmaL, mmaLlast));
+    PetscCall(VecCopy(mmaU, mmaUlast));
+    PetscCall(VecCopy(xllast, xlllast));
+    PetscCall(VecCopy(xlast, xllast));
+    PetscCall(VecCopy(x, xlast));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));
   }
 

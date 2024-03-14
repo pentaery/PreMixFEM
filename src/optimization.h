@@ -40,5 +40,7 @@ PetscErrorCode mma(PCCtx *s_ctx, PetscInt loop, Vec x, Vec dc, Vec L, Vec U,
 PetscErrorCode formLimit(PCCtx *s_ctx, PetscInt loop, Vec xlast, Vec xllast,
                          Vec xlllast, Vec mmaL, Vec mmaU, Vec mmaLlast,
                          Vec mmaUlast, Vec alpha, Vec beta, Vec lbd, Vec ubd);
-PetscErrorCode computeDerivative(PetscScalar x, PetscScalar *derivative);
+PetscErrorCode computeDerivative(PCCtx *s_ctx, PetscScalar y,
+                                 PetscScalar *derivative, Vec xlast, Vec mmaU,
+                                 Vec mmaL, Vec dc, Vec alpha, Vec beta);
 PetscErrorCode steepestDescent(PetscScalar initial, PetscScalar *final);
