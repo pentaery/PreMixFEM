@@ -66,15 +66,14 @@ int main(int argc, char **argv) {
 
   while (change > 0.01) {
     loop += 1;
-    PetscCall(formLimit(&test, loop, xlast, xllast, xlllast, mmaL, mmaU,
-                        mmaLlast, mmaUlast, alpha, beta, lbd, ubd));
     PetscViewer viewer;
     sprintf(str, "../data/output/change%04d.vtr", loop);
     PetscCall(
         PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
     PetscCall(VecView(x, viewer));
     PetscCall(PetscViewerDestroy(&viewer));
-
+    PetscCall(formLimit(&test, loop, xlast, xllast, xlllast, mmaL, mmaU,
+                        mmaLlast, mmaUlast, alpha, beta, lbd, ubd));
     PetscCall(formkappa(&test, x));
     PetscCall(formMatrix(&test, A));
     PetscCall(formRHS(&test, rhs, x));

@@ -17,19 +17,20 @@
 int main(int argc, char **argv) {
   PetscCall(
       PetscInitialize(&argc, &argv, (char *)0, "Toplogical Optimiazation\n"));
-  // PCCtx test;
-  // PetscInt grid = 2;
-  // PetscCall(PetscOptionsGetInt(NULL, NULL, "-mesh", &grid, NULL));
-  // PetscInt mesh[3] = {grid, grid, grid};
-  // PetscInt iter;
-  // PetscScalar dom[3] = {1.0, 1.0, 1.0};
+  PCCtx test;
+  PetscInt grid = 2;
+  PetscCall(PetscOptionsGetInt(NULL, NULL, "-mesh", &grid, NULL));
+  PetscInt mesh[3] = {grid, grid, grid};
+  PetscInt iter;
+  PetscScalar dom[3] = {1.0, 1.0, 1.0};
+  Vec a, b;
   // PetscScalar cost = 0, change = 0, error = 0;
   // Mat A;
   // Vec rhs, t, x, dc;
   // KSP ksp;
 
-  // PetscCall(PC_init(&test, dom, mesh));
-  // PetscCall(PC_print_info(&test));
+  PetscCall(PC_init(&test, dom, mesh));
+  PetscCall(PC_print_info(&test));
 
   // PetscCall(DMCreateMatrix(test.dm, &A));
   // PetscCall(DMCreateGlobalVector(test.dm, &rhs));
@@ -53,7 +54,11 @@ int main(int argc, char **argv) {
   // PetscCall(VecDestroy(&x));
   // PetscCall(KSPDestroy(&ksp));
   // PetscCall(PetscFinalize());
-  PetscScalar final;
-  PetscCall(steepestDescent(20, &final));
-  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "final: %f\n", final));
+  PetscCall(DMCreateGlobalVector(test.dm, &a));
+  PetscCall(DMCreateGlobalVector(test.dm, &b));
+  PetscCall(VecSet(a, 1));
+  PetscCall(VecSet(b, 2));
+  PetscCall(VecPointwiseMax(a, a, b));
+  PetscCall(VecView(a, PETSC_VIEWER_STDOUT_WORLD));
+  PetscCall(PetscFinalize());
 }
