@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
   PetscScalar cost = 0, change = 0, error = 0;
   Mat A;
-  Vec rhs, t, x, dc;
+  Vec rhs, t, x, dc, xlast, xllast;
   KSP ksp;
 
   PetscCall(PC_init(&test, dom, mesh));
@@ -34,9 +34,10 @@ int main(int argc, char **argv) {
   PetscCall(DMCreateMatrix(test.dm, &A));
   PetscCall(DMCreateGlobalVector(test.dm, &rhs));
   PetscCall(DMCreateGlobalVector(test.dm, &x));
-  PetscCall(VecSet(x, 0.5));
+  PetscCall(VecSet(x, 0));
   PetscCall(DMCreateGlobalVector(test.dm, &t));
   PetscCall(DMCreateGlobalVector(test.dm, &dc));
+
 
   PetscCall(formBoundary(&test));
   PetscCall(formkappa(&test, x));

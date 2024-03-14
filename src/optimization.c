@@ -775,10 +775,49 @@ PetscErrorCode computeCost1(PCCtx *s_ctx, Vec t, PetscScalar *cost) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode mma(PCCtx *s_ctx, PetscInt loop, Vec x, Vec dc, Vec L, Vec U, PetscScalar *change) {
+PetscErrorCode mma(PCCtx *s_ctx, PetscInt loop, Vec x, Vec dc, Vec L, Vec U,
+                   PetscScalar *change) {
   PetscFunctionBeginUser;
 
   PetscFunctionReturn(0);
+}
+
+PetscErrorCode formLimit(PCCtx *s_ctx, PetscInt loop, Vec xlast, Vec xllast,
+                         Vec xlllast, Vec mmaL, Vec mmaU,Vec mmaLlast,Vec mmaUlast, Vec alpha, Vec beta,
+                         Vec lbd, Vec ubd) {
+  if (loop <= 2) {
+    PetscCall(VecSet(mmaL, -mmas0));
+    PetscCall(VecSet(mmaU, mmas0));
+    PetscCall(VecAXPBYPCZ(alpha, 0.1, 0.9, 0, xlast, mmaL));
+    PetscCall(VecAXPBYPCZ(beta, 0.1, 0.9, 0, xlast, mmaU));
+    PetscCall(VecPointwiseMax(alpha, alpha, lbd));
+    PetscCall(VecPointwiseMin(beta, beta, ubd));
+  } else {
+    PetscScalar ***arrayxlast, ***arrayxllast, ***arrayxlllast,***arrayL,***arrayU;
+    PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
+    PetscCall(
+        DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
+    PetscCall(DMDAVecGetArrayRead(s_ctx->dm, xlast, &arrayxlast));
+    PetscCall(DMDAVecGetArrayRead(s_ctx->dm, xllast, &arrayxllast));
+    PetscCall(DMDAVecGetArrayRead(s_ctx->dm, xlllast, &arrayxlllast));
+    PetscCall(DMDAVecGetArray(s_ctx->dm, mmaL, &arrayL));
+    PetscCall(DMDAVecGetArray(s_ctx->dm, mmaU, &arrayU));
+    for (ez = startz; ez < startz + nz; ++ez) {
+      for (ey = starty; ey < starty + ny; ++ey) {
+        for (ex = startx; ex < startx + nx; ++ex) {
+          if ((arrayxlast[ez][ey][ex] - arrayxllast[ez][ey][ex]) *
+                  (arrayxllast[ez][ey][ex] - arrayxlllast[ez][ey][ex]) >
+              0) {
+                arrayL[ez][ey][ex] = 
+              }
+        }
+      }
+    }
+    PetscCall(VecAXPBYPCZ(alpha, 0.1, 0.9, 0, xlast, mmaL));
+    PetscCall(VecAXPBYPCZ(beta, 0.1, 0.9, 0, xlast, mmaU));
+    PetscCall(VecPointwiseMax(alpha, alpha, lbd));
+    PetscCall(VecPointwiseMin(beta, beta, ubd));
+  }
 }
 
 PetscErrorCode steepestDescent(PetscScalar initial, PetscScalar *final) {
