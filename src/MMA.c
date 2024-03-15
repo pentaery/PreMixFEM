@@ -22,14 +22,13 @@ int main(int argc, char **argv) {
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-mesh", &grid, NULL));
   PetscInt mesh[3] = {grid, grid, grid};
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
-  PetscScalar cost = 0, derivative = 0;
+  PetscScalar cost = 0;
   Mat A;
   Vec rhs, t, x, dc, mmaL, mmaLlast, mmaU, mmaUlast, xlast, xllast, xlllast,
       lbd, ubd, alpha, beta;
   KSP ksp;
   PetscInt loop = 0, iter = 0;
   PetscScalar change = 1;
-  PetscScalar cost0 = 0;
 
   char str[80];
 
@@ -61,21 +60,22 @@ int main(int argc, char **argv) {
       KSPSetTolerances(ksp, 1e-6, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT));
   PetscCall(KSPSetFromOptions(ksp));
   //   PetscCall(KSPSetUp(ksp));
-  PetscCall(VecSet(x, 0.5));
+  PetscCall(VecSet(x, volfrac));
   PetscCall(formBoundary(&test));
 
   while (change > 0.01) {
     loop += 1;
     PetscScalar initial = 0;
-    PetscViewer viewer;
-    sprintf(str, "../data/output/change%04d.vtr", loop);
-    PetscCall(
-        PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
-    PetscCall(VecView(x, viewer));
-    PetscCall(PetscViewerDestroy(&viewer));
-
-    PetscCall(formLimit(&test, loop, xlast, xllast, xlllast, mmaL, mmaU,
-                        mmaLlast, mmaUlast, alpha, beta, lbd, ubd));
+    // PetscViewer viewer;
+    // sprintf(str, "../data/output/change%04d.vtr", loop);
+    // PetscCall(
+    //     PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
+    // PetscCall(VecView(x, viewer));
+    // PetscCall(PetscViewerDestroy(&viewer));
+    // PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
+    if (loop == 2) {
+      break;
+    }
     PetscCall(formkappa(&test, x));
     PetscCall(formMatrix(&test, A));
     PetscCall(formRHS(&test, rhs, x));
@@ -83,18 +83,26 @@ int main(int argc, char **argv) {
     PetscCall(KSPSolve(ksp, rhs, t));
     PetscCall(KSPGetIterationNumber(ksp, &iter));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "iteration number: %d\n", iter));
-    
-    PetscCall(computeCostMMA(&test, x, &cost));
+
+    PetscCall(computeCostMMA(&test, t, &cost));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
 
     PetscCall(adjointGradient(&test, A, x, t, dc));
+
+    PetscCall(formLimit(&test, loop, xlast, xllast, xlllast, mmaL, mmaU,
+                        mmaLlast, mmaUlast, alpha, beta, lbd, ubd));
+
     PetscCall(
         steepestDescent(&test, xlast, mmaU, mmaL, dc, alpha, beta, &initial));
+    PetscCall(findX(&test, initial, xlast, mmaU, mmaL, dc, alpha, beta, x));
 
     PetscCall(VecCopy(mmaL, mmaLlast));
     PetscCall(VecCopy(mmaU, mmaUlast));
     PetscCall(VecCopy(xllast, xlllast));
     PetscCall(VecCopy(xlast, xllast));
+    PetscCall(VecNorm(x, NORM_INFINITY, &change));
+    PetscCall(VecAXPY(xlast, -1, x));
+
     PetscCall(VecCopy(x, xlast));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));
   }
@@ -105,6 +113,17 @@ int main(int argc, char **argv) {
   PetscCall(VecDestroy(&t));
   PetscCall(VecDestroy(&dc));
   PetscCall(VecDestroy(&x));
+  PetscCall(VecDestroy(&mmaL));
+  PetscCall(VecDestroy(&mmaU));
+  PetscCall(VecDestroy(&xlast));
+  PetscCall(VecDestroy(&xllast));
+  PetscCall(VecDestroy(&xlllast));
+  PetscCall(VecDestroy(&lbd));
+  PetscCall(VecDestroy(&ubd));
+  PetscCall(VecDestroy(&mmaLlast));
+  PetscCall(VecDestroy(&mmaUlast));
+  PetscCall(VecDestroy(&alpha));
+  PetscCall(VecDestroy(&beta));
   PetscCall(KSPDestroy(&ksp));
 
   PetscCall(PetscFinalize());

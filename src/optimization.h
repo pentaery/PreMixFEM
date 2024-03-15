@@ -50,4 +50,5 @@ PetscErrorCode steepestDescent(PCCtx *s_ctx, Vec xlast, Vec mmaU, Vec mmaL,
 
 PetscErrorCode Derivativetest(PetscScalar y, PetscScalar *d);
 
-PetscErrorCode findX();
+PetscErrorCode findX(PCCtx *s_ctx, PetscScalar y, Vec xlast, Vec mmaU, Vec mmaL,
+                     Vec dc, Vec alpha, Vec beta, Vec x);
