@@ -849,21 +849,24 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc) {
   PetscCall(VecDestroy(&t_loc));
   PetscFunctionReturn(0);
 }
-PetscErrorCode steepestDescent(PetscScalar initial, PetscScalar *final) {
+PetscErrorCode steepestDescent(PCCtx *s_ctx, Vec xlast, Vec mmaU, Vec mmaL,
+                               Vec dc, Vec alpha, Vec beta,
+                               PetscScalar *initial) {
   PetscFunctionBeginUser;
-  PetscScalar derivative = 0, x = initial;
-  PetscCall(computeDerivative(&test, y, *derivative, xlast, mmaU, mmaL, dc,
+  PetscScalar derivative = 0, y = *initial;
+  PetscCall(computeDerivative(s_ctx, y, &derivative, xlast, mmaU, mmaL, dc,
                               alpha, beta));
-  while (PetscAbsScalar(derivative) > 1e-6) {
-    PetscCall(computeDerivative(&test, y, *derivative, xlast, mmaU, mmaL, dc,
-                                alpha, beta));
+  while (PetscAbsScalar(derivative) > 1e-5) {
+
     if (derivative > 0) {
-      x = x + 0.5 * derivative;
+      y = y + 0.5 * derivative;
     } else {
-      x = x - 0.5 * derivative;
+      y = y - 0.5 * derivative;
     }
+    PetscCall(computeDerivative(s_ctx, y, &derivative, xlast, mmaU, mmaL, dc,
+                                alpha, beta));
   }
-  *final = x;
+  *initial = y;
   PetscFunctionReturn(0);
 }
 
@@ -970,6 +973,20 @@ PetscErrorCode computeDerivative(PCCtx *s_ctx, PetscScalar y,
   *derivative -= s_ctx->M * s_ctx->N * s_ctx->P * volfrac;
 
   PetscCall(VecDestroy(&Derivative));
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode Derivativetest(PetscScalar y, PetscScalar *d) {
+  PetscFunctionBeginUser;
+  *d = -2 * y + 20;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode findX(PCCtx *s_ctx, Vec x, Vec dc, Vec L, Vec U,
+                     PetscScalar *lmid, PetscScalar *change) {
+  PetscFunctionBeginUser;
+  PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
 
   PetscFunctionReturn(0);
 }

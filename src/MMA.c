@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
 
   while (change > 0.01) {
     loop += 1;
-
+    PetscScalar initial = 0;
     PetscViewer viewer;
     sprintf(str, "../data/output/change%04d.vtr", loop);
     PetscCall(
@@ -83,15 +83,14 @@ int main(int argc, char **argv) {
     PetscCall(KSPSolve(ksp, rhs, t));
     PetscCall(KSPGetIterationNumber(ksp, &iter));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "iteration number: %d\n", iter));
-    if (loop == 1) {
-      PetscCall(computeCost1(&test, t, &cost0));
-      PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost0: %f\n", cost0));
-    }
-    PetscCall(computeCost1(&test, t, &cost));
+    
+    PetscCall(computeCostMMA(&test, x, &cost));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
 
     PetscCall(adjointGradient(&test, A, x, t, dc));
-    
+    PetscCall(
+        steepestDescent(&test, xlast, mmaU, mmaL, dc, alpha, beta, &initial));
+
     PetscCall(VecCopy(mmaL, mmaLlast));
     PetscCall(VecCopy(mmaU, mmaUlast));
     PetscCall(VecCopy(xllast, xlllast));
