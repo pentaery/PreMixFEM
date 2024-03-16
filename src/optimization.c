@@ -746,10 +746,12 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc) {
   for (ez = startz; ez < startz + nz; ++ez) {
     for (ey = starty; ey < starty + ny; ++ey) {
       for (ex = startx; ex < startx + nx; ++ex) {
+        arraydf[ez][ey][ex] -= f0 * s_ctx->H_x * s_ctx->H_y * s_ctx->H_z * 3 *
+                               arrayx[ez][ey][ex] * arrayx[ez][ey][ex];
         if (arrayBoundary[ez][ey][ex] > 0.5) {
-          arraydf[ez][ey][ex] = 6 * (1 - 1e-6) * s_ctx->H_x * s_ctx->H_y /
-                                s_ctx->H_z * tD * arrayx[ez][ey][ex] *
-                                arrayx[ez][ey][ex];
+          arraydf[ez][ey][ex] += 6 * (1 - 1e-6) * s_ctx->H_x * s_ctx->H_y /
+                                 s_ctx->H_z * tD * arrayx[ez][ey][ex] *
+                                 arrayx[ez][ey][ex];
         }
       }
     }
@@ -758,9 +760,11 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc) {
   PetscCall(DMDAVecRestoreArray(s_ctx->dm, df, &arraydf));
   PetscCall(VecPointwiseMult(df, df, lambda));
   // finish computing dF
+
   PetscCall(DMGetLocalVector(s_ctx->dm, &lambda_loc));
   PetscCall(DMGlobalToLocal(s_ctx->dm, lambda, INSERT_VALUES, lambda_loc));
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, lambda_loc, &arraylambda));
+  
   // start computing dA
   PetscCall(DMDAVecGetArray(s_ctx->dm, dc, &arraydc));
   for (ez = startz; ez < startz + nz; ++ez) {
@@ -977,9 +981,8 @@ PetscErrorCode computeDerivative(PCCtx *s_ctx, PetscScalar y,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode findX(PCCtx *s_ctx, PetscScalar y,
-                     Vec xlast, Vec mmaU, Vec mmaL, Vec dc, Vec alpha, Vec beta,
-                     Vec x) {
+PetscErrorCode findX(PCCtx *s_ctx, PetscScalar y, Vec xlast, Vec mmaU, Vec mmaL,
+                     Vec dc, Vec alpha, Vec beta, Vec x) {
   PetscFunctionBeginUser;
   PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
   PetscScalar ***arrayxlast, ***arrayU, ***arrayL, ***arraydc, ***arrayalpha,

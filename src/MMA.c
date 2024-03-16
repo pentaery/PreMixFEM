@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
       KSPSetTolerances(ksp, 1e-6, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT));
   PetscCall(KSPSetFromOptions(ksp));
   //   PetscCall(KSPSetUp(ksp));
-  PetscCall(VecSet(x, volfrac));
+  PetscCall(VecSet(x, 0.1));
   PetscCall(formBoundary(&test));
 
   while (change > 0.01) {
@@ -88,13 +88,13 @@ int main(int argc, char **argv) {
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
 
     PetscCall(adjointGradient(&test, A, x, t, dc));
+    PetscCall(VecView(dc, PETSC_VIEWER_STDOUT_WORLD));
+    // PetscCall(formLimit(&test, loop, xlast, xllast, xlllast, mmaL, mmaU,
+    //                     mmaLlast, mmaUlast, alpha, beta, lbd, ubd));
 
-    PetscCall(formLimit(&test, loop, xlast, xllast, xlllast, mmaL, mmaU,
-                        mmaLlast, mmaUlast, alpha, beta, lbd, ubd));
-
-    PetscCall(
-        steepestDescent(&test, xlast, mmaU, mmaL, dc, alpha, beta, &initial));
-    PetscCall(findX(&test, initial, xlast, mmaU, mmaL, dc, alpha, beta, x));
+    // PetscCall(
+    //     steepestDescent(&test, xlast, mmaU, mmaL, dc, alpha, beta, &initial));
+    // PetscCall(findX(&test, initial, xlast, mmaU, mmaL, dc, alpha, beta, x));
 
     PetscCall(VecCopy(mmaL, mmaLlast));
     PetscCall(VecCopy(mmaU, mmaUlast));
