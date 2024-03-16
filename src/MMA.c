@@ -83,17 +83,16 @@ int main(int argc, char **argv) {
     PetscCall(KSPSolve(ksp, rhs, t));
     PetscCall(KSPGetIterationNumber(ksp, &iter));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "iteration number: %d\n", iter));
-
     PetscCall(computeCostMMA(&test, t, &cost));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
-
     PetscCall(adjointGradient(&test, A, x, t, dc));
     PetscCall(VecView(dc, PETSC_VIEWER_STDOUT_WORLD));
     // PetscCall(formLimit(&test, loop, xlast, xllast, xlllast, mmaL, mmaU,
     //                     mmaLlast, mmaUlast, alpha, beta, lbd, ubd));
 
     // PetscCall(
-    //     steepestDescent(&test, xlast, mmaU, mmaL, dc, alpha, beta, &initial));
+    //     steepestDescent(&test, xlast, mmaU, mmaL, dc, alpha, beta,
+    //     &initial));
     // PetscCall(findX(&test, initial, xlast, mmaU, mmaL, dc, alpha, beta, x));
 
     PetscCall(VecCopy(mmaL, mmaLlast));

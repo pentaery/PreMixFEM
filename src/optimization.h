@@ -26,6 +26,7 @@ PetscErrorCode formMatrix(PCCtx *s_ctx, Mat A);
 PetscErrorCode formRHS(PCCtx *s_ctx, Vec rhs, Vec x);
 PetscErrorCode computeGradient(PCCtx *s_ctx, Vec x, Vec t, Vec dc);
 PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc);
+PetscErrorCode adjointGradient1(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc);
 PetscErrorCode filter(PCCtx *s_ctx, Vec dc, Vec x);
 PetscErrorCode computeCost(PCCtx *s_ctx, Vec t, Vec rhs, PetscScalar *cost);
 PetscErrorCode optimalCriteria(PCCtx *s_ctx, Vec x, Vec dc,
