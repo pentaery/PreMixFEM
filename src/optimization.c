@@ -1,6 +1,7 @@
 #include "optimization.h"
 #include "PreMixFEM_3D.h"
 #include "mpi.h"
+#include <H5Spublic.h>
 #include <petscdm.h>
 #include <petscdmda.h>
 #include <petscdmdatypes.h>
@@ -632,16 +633,15 @@ PetscErrorCode computeCost1(PCCtx *s_ctx, Vec t, PetscScalar *cost) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode mma(PCCtx *s_ctx, PetscInt loop, Vec x, Vec dc, Vec L, Vec U,
-                   PetscScalar *change) {
-  PetscFunctionBeginUser;
-
-  PetscFunctionReturn(0);
-}
-
 PetscErrorCode formLimit(PCCtx *s_ctx, PetscInt loop, Vec xlast, Vec xllast,
                          Vec xlllast, Vec mmaL, Vec mmaU, Vec mmaLlast,
-                         Vec mmaUlast, Vec alpha, Vec beta, Vec lbd, Vec ubd) {
+                         Vec mmaUlast, Vec alpha, Vec beta) {
+  PetscFunctionBeginUser;
+  Vec lbd, ubd;
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &lbd));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &ubd));
+  PetscCall(VecSet(lbd, 1e-6));
+  PetscCall(VecSet(ubd, 1));
   if (loop <= 2) {
     PetscCall(VecSet(mmaL, -mmas0));
     PetscCall(VecSet(mmaU, mmas0));
@@ -666,7 +666,7 @@ PetscErrorCode formLimit(PCCtx *s_ctx, PetscInt loop, Vec xlast, Vec xllast,
       for (ey = starty; ey < starty + ny; ++ey) {
         for (ex = startx; ex < startx + nx; ++ex) {
           if ((arrayxlast[ez][ey][ex] - arrayxllast[ez][ey][ex]) *
-                  (arrayxllast[ez][ey][ex] - arrayxlllast[ez][ey][ex]) >
+                  (arrayxllast[ez][ey][ex] - arrayxlllast[ez][ey][ex]) <
               0) {
             arrayL[ez][ey][ex] =
                 arrayxlast[ez][ey][ex] -
@@ -698,6 +698,9 @@ PetscErrorCode formLimit(PCCtx *s_ctx, PetscInt loop, Vec xlast, Vec xllast,
     PetscCall(VecPointwiseMax(alpha, alpha, lbd));
     PetscCall(VecPointwiseMin(beta, beta, ubd));
   }
+  PetscCall(VecDestroy(&lbd));
+  PetscCall(VecDestroy(&ubd));
+  PetscFunctionReturn(0);
 }
 // compute c(x)
 PetscErrorCode computeCostMMA(PCCtx *s_ctx, Vec t, PetscScalar *cost) {
@@ -760,7 +763,6 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc) {
 
   PetscCall(DMDAVecRestoreArray(s_ctx->dm, df, &arraydf));
   PetscCall(VecPointwiseMult(dF, df, lambda));
-  PetscCall(VecView(dF, PETSC_VIEWER_STDOUT_WORLD));
   // finish computing dF
 
   PetscCall(DMGetLocalVector(s_ctx->dm, &lambda_loc));
@@ -778,9 +780,10 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc) {
               s_ctx->H_y * s_ctx->H_z / s_ctx->H_x *
               (arrayt[ez][ey][ex] - arrayt[ez][ey][ex - 1]) *
               (arraylambda[ez][ey][ex] - arraylambda[ez][ey][ex - 1]) /
-              (1 + PetscPowScalar(arraykappa[0][ez][ey][ex] /
-                                      arraykappa[0][ez][ey][ex - 1],
-                                  2));
+              (PetscPowScalar(
+                  (arraykappa[0][ez][ey][ex] / arraykappa[0][ez][ey][ex - 1]) +
+                      1,
+                  2));
         }
         if (ex < s_ctx->M - 1) {
           arraydc[ez][ey][ex] +=
@@ -788,9 +791,10 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc) {
               s_ctx->H_y * s_ctx->H_z / s_ctx->H_x *
               (arrayt[ez][ey][ex + 1] - arrayt[ez][ey][ex]) *
               (arraylambda[ez][ey][ex + 1] - arraylambda[ez][ey][ex]) /
-              (1 + PetscPowScalar(arraykappa[0][ez][ey][ex] /
-                                      arraykappa[0][ez][ey][ex + 1],
-                                  2));
+              (PetscPowScalar(
+                  (arraykappa[0][ez][ey][ex] / arraykappa[0][ez][ey][ex + 1]) +
+                      1,
+                  2));
         }
         if (ey > 0) {
           arraydc[ez][ey][ex] +=
@@ -798,9 +802,10 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc) {
               s_ctx->H_x * s_ctx->H_z / s_ctx->H_y *
               (arrayt[ez][ey][ex] - arrayt[ez][ey - 1][ex]) *
               (arraylambda[ez][ey][ex] - arraylambda[ez][ey - 1][ex]) /
-              (1 + PetscPowScalar(arraykappa[1][ez][ey][ex] /
-                                      arraykappa[1][ez][ey - 1][ex],
-                                  2));
+              (PetscPowScalar(
+                  (arraykappa[1][ez][ey][ex] / arraykappa[1][ez][ey - 1][ex]) +
+                      1,
+                  2));
         }
         if (ey < s_ctx->N - 1) {
           arraydc[ez][ey][ex] +=
@@ -808,9 +813,10 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc) {
               s_ctx->H_x * s_ctx->H_z / s_ctx->H_y *
               (arrayt[ez][ey + 1][ex] - arrayt[ez][ey][ex]) *
               (arraylambda[ez][ey + 1][ex] - arraylambda[ez][ey][ex]) /
-              (1 + PetscPowScalar(arraykappa[1][ez][ey][ex] /
-                                      arraykappa[1][ez][ey + 1][ex],
-                                  2));
+              (PetscPowScalar(
+                  (arraykappa[1][ez][ey][ex] / arraykappa[1][ez][ey + 1][ex]) +
+                      1,
+                  2));
         }
         if (ez > 0) {
           arraydc[ez][ey][ex] +=
@@ -818,9 +824,10 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc) {
               s_ctx->H_x * s_ctx->H_y / s_ctx->H_z *
               (arrayt[ez][ey][ex] - arrayt[ez - 1][ey][ex]) *
               (arraylambda[ez][ey][ex] - arraylambda[ez - 1][ey][ex]) /
-              (1 + PetscPowScalar(arraykappa[2][ez][ey][ex] /
-                                      arraykappa[2][ez - 1][ey][ex],
-                                  2));
+              (PetscPowScalar(
+                  (arraykappa[2][ez][ey][ex] / arraykappa[2][ez - 1][ey][ex]) +
+                      1,
+                  2));
         }
         if (ez < s_ctx->P - 1) {
           arraydc[ez][ey][ex] +=
@@ -828,14 +835,16 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc) {
               s_ctx->H_x * s_ctx->H_y / s_ctx->H_z *
               (arrayt[ez + 1][ey][ex] - arrayt[ez][ey][ex]) *
               (arraylambda[ez + 1][ey][ex] - arraylambda[ez][ey][ex]) /
-              (1 + PetscPowScalar(arraykappa[2][ez][ey][ex] /
-                                      arraykappa[2][ez + 1][ey][ex],
-                                  2));
+              (PetscPowScalar(
+                  (arraykappa[2][ez][ey][ex] / arraykappa[2][ez + 1][ey][ex]) +
+                      1,
+                  2));
         }
         if (arrayBoundary[ez][ey][ex] > 0.5) {
-          arraydc[ez][ey][ex] += arraylambda[ez][ey][ex] * 6 * (1 - 1e-6) *
-                                 s_ctx->H_x * s_ctx->H_y / s_ctx->H_z * tD *
-                                 arrayx[ez][ey][ex] * arrayx[ez][ey][ex];
+          arraydc[ez][ey][ex] += 6 * (1 - 1e-6) * arrayx[ez][ey][ex] *
+                                 arrayx[ez][ey][ex] * s_ctx->H_x * s_ctx->H_y /
+                                 s_ctx->H_z * arrayt[ez][ey][ex] *
+                                 arraylambda[ez][ey][ex];
         }
       }
     }
@@ -849,7 +858,6 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc) {
     PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, kappa_loc[i], &arraykappa[i]));
     PetscCall(VecDestroy(&kappa_loc[i]));
   }
-  PetscCall(VecView(dc, PETSC_VIEWER_STDOUT_WORLD));
   PetscCall(VecAYPX(dc, -1, dF));
 
   PetscCall(VecDestroy(&dgT));
@@ -859,13 +867,12 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc) {
   PetscCall(VecDestroy(&dF));
   PetscFunctionReturn(0);
 }
-PetscErrorCode steepestDescent(PCCtx *s_ctx, Vec xlast, Vec mmaU, Vec mmaL,
-                               Vec dc, Vec alpha, Vec beta,
-                               PetscScalar *initial) {
+PetscErrorCode mma(PCCtx *s_ctx, Vec xlast, Vec mmaU, Vec mmaL, Vec dc,
+                   Vec alpha, Vec beta, Vec x, PetscScalar *initial) {
   PetscFunctionBeginUser;
   PetscScalar derivative = 0, y = *initial;
   PetscCall(computeDerivative(s_ctx, y, &derivative, xlast, mmaU, mmaL, dc,
-                              alpha, beta));
+                              alpha, beta, x));
   while (PetscAbsScalar(derivative) > 1e-5) {
 
     if (derivative > 0) {
@@ -874,7 +881,7 @@ PetscErrorCode steepestDescent(PCCtx *s_ctx, Vec xlast, Vec mmaU, Vec mmaL,
       y = y - 0.5 * derivative;
     }
     PetscCall(computeDerivative(s_ctx, y, &derivative, xlast, mmaU, mmaL, dc,
-                                alpha, beta));
+                                alpha, beta, x));
   }
   *initial = y;
   PetscFunctionReturn(0);
@@ -882,108 +889,42 @@ PetscErrorCode steepestDescent(PCCtx *s_ctx, Vec xlast, Vec mmaU, Vec mmaL,
 
 PetscErrorCode computeDerivative(PCCtx *s_ctx, PetscScalar y,
                                  PetscScalar *derivative, Vec xlast, Vec mmaU,
-                                 Vec mmaL, Vec dc, Vec alpha, Vec beta) {
+                                 Vec mmaL, Vec dc, Vec alpha, Vec beta, Vec x) {
   PetscFunctionBeginUser;
+  PetscCall(findX(s_ctx, y, xlast, mmaU, mmaL, dc, alpha, beta, x));
   PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
-  PetscScalar ***arrayxlast, ***arrayU, ***arrayL, ***arraydc, ***arrayalpha,
-      ***arraybeta, ***arrayderivative;
-  PetscScalar l1, l2, xjy;
+  PetscScalar ***arrayxlast, ***arrayU, ***arrayderivative, ***arrayx;
   Vec Derivative;
   PetscCall(DMCreateGlobalVector(s_ctx->dm, &Derivative));
   PetscCall(
       DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, xlast, &arrayxlast));
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mmaU, &arrayU));
-  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mmaL, &arrayL));
-  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, dc, &arraydc));
-  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, alpha, &arrayalpha));
-  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, beta, &arraybeta));
+  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, x, &arrayx));
   PetscCall(DMDAVecGetArray(s_ctx->dm, Derivative, &arrayderivative));
 
   for (ez = startz; ez < startz + nz; ++ez) {
     for (ey = starty; ey < starty + ny; ++ey) {
       for (ex = startx; ex < startx + nx; ++ex) {
-        if (arraydc[ez][ey][ex] > 0) {
-          l1 = ((arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex]) *
-                (arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex])) *
-               (arraydc[ez][ey][ex] + y) /
-               ((arrayU[ez][ey][ex] - arrayalpha[ez][ey][ex]) *
-                (arrayU[ez][ey][ex] - arrayalpha[ez][ey][ex]));
-          l2 = ((arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex]) *
-                (arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex])) *
-               (arraydc[ez][ey][ex] + y) /
-               ((arrayU[ez][ey][ex] - arraybeta[ez][ey][ex]) *
-                (arrayU[ez][ey][ex] - arraybeta[ez][ey][ex]));
-        } else {
-          l1 = ((arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex]) *
-                (arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex])) *
-                   y /
-                   ((arrayU[ez][ey][ex] - arrayalpha[ez][ey][ex]) *
-                    (arrayU[ez][ey][ex] - arrayalpha[ez][ey][ex])) +
-               ((arrayxlast[ez][ey][ex] - arrayL[ez][ey][ex]) *
-                (arrayxlast[ez][ey][ex] - arrayL[ez][ey][ex])) /
-                   ((arrayalpha[ez][ey][ex] - arrayL[ez][ey][ex]) *
-                    (arrayalpha[ez][ey][ex] - arrayL[ez][ey][ex]));
-          l2 = ((arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex]) *
-                (arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex])) *
-                   y /
-                   ((arrayU[ez][ey][ex] - arraybeta[ez][ey][ex]) *
-                    (arrayU[ez][ey][ex] - arraybeta[ez][ey][ex])) +
-               ((arrayxlast[ez][ey][ex] - arrayL[ez][ey][ex]) *
-                (arrayxlast[ez][ey][ex] - arrayL[ez][ey][ex])) /
-                   ((arraybeta[ez][ey][ex] - arrayL[ez][ey][ex]) *
-                    (arraybeta[ez][ey][ex] - arrayL[ez][ey][ex]));
-        }
-
-        if (l1 > 0 && l1 == 0) {
-          arrayderivative[ez][ey][ex] =
-              ((arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex]) *
-               (arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex])) /
-              ((arrayU[ez][ey][ex] - arrayalpha[ez][ey][ex]) *
-               (arrayU[ez][ey][ex] - arrayalpha[ez][ey][ex]));
-        } else if (l2 < 0 && l2 == 0) {
-          arrayderivative[ez][ey][ex] =
-              ((arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex]) *
-               (arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex])) /
-              ((arrayU[ez][ey][ex] - arraybeta[ez][ey][ex]) *
-               (arrayU[ez][ey][ex] - arraybeta[ez][ey][ex]));
-        } else {
-          if (arraydc[ez][ey][ex] > 0) {
-            xjy = arrayL[ez][ey][ex];
-          } else {
-            xjy = (PetscSqrtScalar(
-                       y * (arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex]) *
-                       (arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex])) *
-                       arrayL[ez][ey][ex] -
-                   arraydc[ez][ey][ex] * arrayU[ez][ey][ex]) /
-                  (PetscSqrtScalar(
-                       y * (arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex]) *
-                       (arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex])) -
-                   arraydc[ez][ey][ex]);
-          }
-          arrayderivative[ez][ey][ex] =
-              ((arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex]) *
-               (arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex])) /
-              ((arrayU[ez][ey][ex] - xjy) * (arrayU[ez][ey][ex] - xjy));
-        }
-        arrayderivative[ez][ey][ex] += 2 * arrayxlast[ez][ey][ex];
-        arrayderivative[ez][ey][ex] -= arrayU[ez][ey][ex];
+        arrayderivative[ez][ey][ex] +=
+            ((arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex]) *
+             (arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex])) /
+            (arrayU[ez][ey][ex] - arrayx[ez][ey][ex]) /
+            (arrayU[ez][ey][ex] - arrayx[ez][ey][ex]);
+        arrayderivative[ez][ey][ex] +=
+            2 * arrayxlast[ez][ey][ex] - arrayU[ez][ey][ex];
       }
     }
   }
 
-  PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, alpha, &arrayalpha));
-  PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, beta, &arraybeta));
-  PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, dc, &arraydc));
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, xlast, &arrayxlast));
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, mmaU, &arrayU));
-  PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, mmaL, &arrayL));
+  PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, x, &arrayx));
   PetscCall(DMDAVecRestoreArray(s_ctx->dm, Derivative, &arrayderivative));
   PetscCall(VecSum(Derivative, derivative));
   *derivative -= s_ctx->M * s_ctx->N * s_ctx->P * volfrac;
-
   PetscCall(VecDestroy(&Derivative));
-
+  // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "derivative: %f\n", *derivative));
   PetscFunctionReturn(0);
 }
 
@@ -1038,10 +979,9 @@ PetscErrorCode findX(PCCtx *s_ctx, PetscScalar y, Vec xlast, Vec mmaU, Vec mmaL,
                    ((arraybeta[ez][ey][ex] - arrayL[ez][ey][ex]) *
                     (arraybeta[ez][ey][ex] - arrayL[ez][ey][ex]));
         }
-
-        if (l1 > 0 && l1 == 0) {
+        if (l1 >= 0) {
           arrayx[ez][ey][ex] = arrayalpha[ez][ey][ex];
-        } else if (l2 < 0 && l2 == 0) {
+        } else if (l2 <= 0) {
           arrayx[ez][ey][ex] = arraybeta[ez][ey][ex];
         } else {
           if (arraydc[ez][ey][ex] > 0) {
@@ -1062,13 +1002,14 @@ PetscErrorCode findX(PCCtx *s_ctx, PetscScalar y, Vec xlast, Vec mmaU, Vec mmaL,
       }
     }
   }
-  PetscCall(DMDAVecGetArray(s_ctx->dm, x, &arrayx));
+  PetscCall(DMDAVecRestoreArray(s_ctx->dm, x, &arrayx));
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, alpha, &arrayalpha));
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, beta, &arraybeta));
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, dc, &arraydc));
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, xlast, &arrayxlast));
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, mmaU, &arrayU));
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, mmaL, &arrayL));
+  PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
 
   PetscFunctionReturn(0);
 }
@@ -1125,18 +1066,19 @@ PetscErrorCode adjointGradient1(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc) {
   for (ez = startz; ez < startz + nz; ++ez) {
     for (ey = starty; ey < starty + ny; ++ey) {
       for (ex = startx; ex < startx + nx; ++ex) {
-        arraydc[ez][ey][ex] += arraylambda[ez][ey][ex] * f0 * s_ctx->H_x *
-                               s_ctx->H_y * s_ctx->H_z * 3 *
-                               arrayx[ez][ey][ex] * arrayx[ez][ey][ex];
+        arraydc[ez][ey][ex] += 3 * f0 * arraylambda[ez][ey][ex] * s_ctx->H_x *
+                               s_ctx->H_y * s_ctx->H_z * arrayx[ez][ey][ex] *
+                               arrayx[ez][ey][ex];
         if (ex > 0) {
           arraydc[ez][ey][ex] +=
               6 * (1 - 1e-6) * PetscPowScalar(arrayx[ez][ey][ex], penal - 1) *
               s_ctx->H_y * s_ctx->H_z / s_ctx->H_x *
               (arrayt[ez][ey][ex] - arrayt[ez][ey][ex - 1]) *
               (arraylambda[ez][ey][ex] - arraylambda[ez][ey][ex - 1]) /
-              (1 + PetscPowScalar(arraykappa[0][ez][ey][ex] /
-                                      arraykappa[0][ez][ey][ex - 1],
-                                  2));
+              (PetscPowScalar(
+                  (arraykappa[0][ez][ey][ex] / arraykappa[0][ez][ey][ex - 1]) +
+                      1,
+                  2));
         }
         if (ex < s_ctx->M - 1) {
           arraydc[ez][ey][ex] +=
@@ -1144,9 +1086,10 @@ PetscErrorCode adjointGradient1(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc) {
               s_ctx->H_y * s_ctx->H_z / s_ctx->H_x *
               (arrayt[ez][ey][ex + 1] - arrayt[ez][ey][ex]) *
               (arraylambda[ez][ey][ex + 1] - arraylambda[ez][ey][ex]) /
-              (1 + PetscPowScalar(arraykappa[0][ez][ey][ex] /
-                                      arraykappa[0][ez][ey][ex + 1],
-                                  2));
+              (PetscPowScalar(
+                  (arraykappa[0][ez][ey][ex] / arraykappa[0][ez][ey][ex + 1]) +
+                      1,
+                  2));
         }
         if (ey > 0) {
           arraydc[ez][ey][ex] +=
@@ -1154,9 +1097,10 @@ PetscErrorCode adjointGradient1(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc) {
               s_ctx->H_x * s_ctx->H_z / s_ctx->H_y *
               (arrayt[ez][ey][ex] - arrayt[ez][ey - 1][ex]) *
               (arraylambda[ez][ey][ex] - arraylambda[ez][ey - 1][ex]) /
-              (1 + PetscPowScalar(arraykappa[1][ez][ey][ex] /
-                                      arraykappa[1][ez][ey - 1][ex],
-                                  2));
+              (PetscPowScalar(
+                  (arraykappa[1][ez][ey][ex] / arraykappa[1][ez][ey - 1][ex]) +
+                      1,
+                  2));
         }
         if (ey < s_ctx->N - 1) {
           arraydc[ez][ey][ex] +=
@@ -1164,9 +1108,10 @@ PetscErrorCode adjointGradient1(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc) {
               s_ctx->H_x * s_ctx->H_z / s_ctx->H_y *
               (arrayt[ez][ey + 1][ex] - arrayt[ez][ey][ex]) *
               (arraylambda[ez][ey + 1][ex] - arraylambda[ez][ey][ex]) /
-              (1 + PetscPowScalar(arraykappa[1][ez][ey][ex] /
-                                      arraykappa[1][ez][ey + 1][ex],
-                                  2));
+              (PetscPowScalar(
+                  (arraykappa[1][ez][ey][ex] / arraykappa[1][ez][ey + 1][ex]) +
+                      1,
+                  2));
         }
         if (ez > 0) {
           arraydc[ez][ey][ex] +=
@@ -1174,9 +1119,10 @@ PetscErrorCode adjointGradient1(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc) {
               s_ctx->H_x * s_ctx->H_y / s_ctx->H_z *
               (arrayt[ez][ey][ex] - arrayt[ez - 1][ey][ex]) *
               (arraylambda[ez][ey][ex] - arraylambda[ez - 1][ey][ex]) /
-              (1 + PetscPowScalar(arraykappa[2][ez][ey][ex] /
-                                      arraykappa[2][ez - 1][ey][ex],
-                                  2));
+              (PetscPowScalar(
+                  (arraykappa[2][ez][ey][ex] / arraykappa[2][ez - 1][ey][ex]) +
+                      1,
+                  2));
         }
         if (ez < s_ctx->P - 1) {
           arraydc[ez][ey][ex] +=
@@ -1184,17 +1130,19 @@ PetscErrorCode adjointGradient1(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc) {
               s_ctx->H_x * s_ctx->H_y / s_ctx->H_z *
               (arrayt[ez + 1][ey][ex] - arrayt[ez][ey][ex]) *
               (arraylambda[ez + 1][ey][ex] - arraylambda[ez][ey][ex]) /
-              (1 + PetscPowScalar(arraykappa[2][ez][ey][ex] /
-                                      arraykappa[2][ez + 1][ey][ex],
-                                  2));
+              (PetscPowScalar(
+                  (arraykappa[2][ez][ey][ex] / arraykappa[2][ez + 1][ey][ex]) +
+                      1,
+                  2));
         }
         if (arrayBoundary[ez][ey][ex] > 0.5) {
-          arraydc[ez][ey][ex] += arraylambda[ez][ey][ex] * 6 * (1 - 1e-6) *
+          arraydc[ez][ey][ex] += 6 * (1 - 1e-6) * arrayx[ez][ey][ex] *
+                                 arrayx[ez][ey][ex] * s_ctx->H_x * s_ctx->H_y /
+                                 s_ctx->H_z * arrayt[ez][ey][ex] *
+                                 arraylambda[ez][ey][ex];
+          arraydc[ez][ey][ex] -= 6 * arraylambda[ez][ey][ex] * (1 - 1e-6) *
                                  s_ctx->H_x * s_ctx->H_y / s_ctx->H_z * tD *
                                  arrayx[ez][ey][ex] * arrayx[ez][ey][ex];
-          arraydc[ez][ey][ex] -= 6 * (1 - 1e-6) * s_ctx->H_x * s_ctx->H_y /
-                                 s_ctx->H_z * tD * arrayx[ez][ey][ex] *
-                                 arrayx[ez][ey][ex];
         }
       }
     }

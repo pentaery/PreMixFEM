@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
   PetscScalar cost = 0;
   Mat A;
   Vec rhs, t, x, dc, mmaL, mmaLlast, mmaU, mmaUlast, xlast, xllast, xlllast,
-      lbd, ubd, alpha, beta;
+      alpha, beta;
   KSP ksp;
   PetscInt loop = 0, iter = 0;
   PetscScalar change = 1;
@@ -45,14 +45,11 @@ int main(int argc, char **argv) {
   PetscCall(DMCreateGlobalVector(test.dm, &xlast));
   PetscCall(DMCreateGlobalVector(test.dm, &xllast));
   PetscCall(DMCreateGlobalVector(test.dm, &xlllast));
-  PetscCall(DMCreateGlobalVector(test.dm, &ubd));
-  PetscCall(DMCreateGlobalVector(test.dm, &lbd));
   PetscCall(DMCreateGlobalVector(test.dm, &mmaLlast));
   PetscCall(DMCreateGlobalVector(test.dm, &mmaUlast));
   PetscCall(DMCreateGlobalVector(test.dm, &alpha));
   PetscCall(DMCreateGlobalVector(test.dm, &beta));
-  PetscCall(VecSet(ubd, 1));
-  PetscCall(VecSet(lbd, 1e-6));
+
   PetscCall(VecSet(xlast, volfrac));
 
   PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
@@ -73,7 +70,7 @@ int main(int argc, char **argv) {
     // PetscCall(VecView(x, viewer));
     // PetscCall(PetscViewerDestroy(&viewer));
     // PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
-    if (loop == 2) {
+    if (loop == 5) {
       break;
     }
     PetscCall(formkappa(&test, x));
@@ -85,15 +82,10 @@ int main(int argc, char **argv) {
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "iteration number: %d\n", iter));
     PetscCall(computeCostMMA(&test, t, &cost));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
-    PetscCall(adjointGradient(&test, A, x, t, dc));
-    PetscCall(VecView(dc, PETSC_VIEWER_STDOUT_WORLD));
-    // PetscCall(formLimit(&test, loop, xlast, xllast, xlllast, mmaL, mmaU,
-    //                     mmaLlast, mmaUlast, alpha, beta, lbd, ubd));
-
-    // PetscCall(
-    //     steepestDescent(&test, xlast, mmaU, mmaL, dc, alpha, beta,
-    //     &initial));
-    // PetscCall(findX(&test, initial, xlast, mmaU, mmaL, dc, alpha, beta, x));
+    PetscCall(adjointGradient1(&test, A, x, t, dc));
+    PetscCall(formLimit(&test, loop, xlast, xllast, xlllast, mmaL, mmaU,
+                        mmaLlast, mmaUlast, alpha, beta));
+    PetscCall(mma(&test, xlast, mmaU, mmaL, dc, alpha, beta, x, &initial));
 
     PetscCall(VecCopy(mmaL, mmaLlast));
     PetscCall(VecCopy(mmaU, mmaUlast));
@@ -117,8 +109,6 @@ int main(int argc, char **argv) {
   PetscCall(VecDestroy(&xlast));
   PetscCall(VecDestroy(&xllast));
   PetscCall(VecDestroy(&xlllast));
-  PetscCall(VecDestroy(&lbd));
-  PetscCall(VecDestroy(&ubd));
   PetscCall(VecDestroy(&mmaLlast));
   PetscCall(VecDestroy(&mmaUlast));
   PetscCall(VecDestroy(&alpha));
