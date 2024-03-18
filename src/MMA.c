@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
     // PetscCall(VecView(x, viewer));
     // PetscCall(PetscViewerDestroy(&viewer));
     // PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
-    if (loop == 5) {
+    if (loop == 2) {
       break;
     }
     PetscCall(formkappa(&test, x));
@@ -85,7 +85,8 @@ int main(int argc, char **argv) {
     PetscCall(adjointGradient1(&test, A, x, t, dc));
     PetscCall(formLimit(&test, loop, xlast, xllast, xlllast, mmaL, mmaU,
                         mmaLlast, mmaUlast, alpha, beta));
-    PetscCall(mma(&test, xlast, mmaU, mmaL, dc, alpha, beta, x, &initial));
+    PetscCall(mmatest(&test, xlast, mmaU, mmaL, dc, alpha, beta, x, &initial));
+
 
     PetscCall(VecCopy(mmaL, mmaLlast));
     PetscCall(VecCopy(mmaU, mmaUlast));
