@@ -96,7 +96,6 @@ int main(int argc, char **argv) {
 
     PetscCall(VecAXPY(xlast, -1, x));
     PetscCall(VecNorm(xlast, NORM_INFINITY, &change));
-
     PetscCall(VecCopy(x, xlast));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));
   }

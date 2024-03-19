@@ -871,7 +871,7 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc) {
 PetscErrorCode mma(PCCtx *s_ctx, Vec xlast, Vec mmaU, Vec mmaL, Vec dc,
                    Vec alpha, Vec beta, Vec x, PetscScalar *initial) {
   PetscFunctionBeginUser;
-  PetscScalar yL = 0, yU = 100000;
+  PetscScalar yL = 0, yU = 10;
   PetscScalar derivative = 0, y = *initial;
   while (yU - yL > 1e-6) {
     y = (yL + yU) / 2;
@@ -883,6 +883,7 @@ PetscErrorCode mma(PCCtx *s_ctx, Vec xlast, Vec mmaU, Vec mmaL, Vec dc,
       yL = y;
     }
   }
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "y: %f\n", y));
   PetscFunctionReturn(0);
 }
 
