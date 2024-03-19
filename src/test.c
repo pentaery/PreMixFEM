@@ -34,10 +34,9 @@ int main(int argc, char **argv) {
   PetscCall(DMCreateMatrix(test.dm, &A));
   PetscCall(DMCreateGlobalVector(test.dm, &rhs));
   PetscCall(DMCreateGlobalVector(test.dm, &x));
-  PetscCall(VecSet(x, 0));
+  PetscCall(VecSet(x, 1e-6));
   PetscCall(DMCreateGlobalVector(test.dm, &t));
   PetscCall(DMCreateGlobalVector(test.dm, &dc));
-
 
   PetscCall(formBoundary(&test));
   PetscCall(formkappa(&test, x));
@@ -55,8 +54,8 @@ int main(int argc, char **argv) {
   // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "residual norm: %f\n", error));
   // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "iteration number: %d\n", iter));
 
-  PetscCall(adjointGradient(&test, A, x, t, dc));
-  PetscCall(VecView(dc, PETSC_VIEWER_STDOUT_WORLD));
+  PetscCall(computeCostMMA(&test, t, &cost));
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
 
   PetscCall(MatDestroy(&A));
   PetscCall(VecDestroy(&rhs));

@@ -173,7 +173,7 @@ PetscErrorCode formRHS(PCCtx *s_ctx, Vec rhs, Vec x) {
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, s_ctx->kappa[2], &arraykappa));
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, s_ctx->boundary, &arrayBoundary));
   PetscCall(DMDAVecGetArray(s_ctx->dm, rhs, &array));
-  for (ez = startz; ez < startz + nz; ++ez)
+  for (ez = startz; ez < startz + nz; ++ez) {
     for (ey = starty; ey < starty + ny; ey++) {
       for (ex = startx; ex < startx + nx; ex++) {
         array[ez][ey][ex] += s_ctx->H_x * s_ctx->H_y * s_ctx->H_z * f0 *
@@ -184,6 +184,7 @@ PetscErrorCode formRHS(PCCtx *s_ctx, Vec rhs, Vec x) {
         }
       }
     }
+  }
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, x, &arrayx));
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, s_ctx->kappa[2], &arraykappa));
   PetscCall(
@@ -870,10 +871,8 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc) {
 PetscErrorCode mma(PCCtx *s_ctx, Vec xlast, Vec mmaU, Vec mmaL, Vec dc,
                    Vec alpha, Vec beta, Vec x, PetscScalar *initial) {
   PetscFunctionBeginUser;
-  PetscScalar yL = 0, yU = 100;
+  PetscScalar yL = 0, yU = 100000;
   PetscScalar derivative = 0, y = *initial;
-  PetscCall(computeDerivative(s_ctx, y, &derivative, xlast, mmaU, mmaL, dc,
-                              alpha, beta, x));
   while (yU - yL > 1e-6) {
     y = (yL + yU) / 2;
     PetscCall(computeDerivative(s_ctx, y, &derivative, xlast, mmaU, mmaL, dc,
@@ -884,7 +883,6 @@ PetscErrorCode mma(PCCtx *s_ctx, Vec xlast, Vec mmaU, Vec mmaL, Vec dc,
       yL = y;
     }
   }
-  PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
   PetscFunctionReturn(0);
 }
 

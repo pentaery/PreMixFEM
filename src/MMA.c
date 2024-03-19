@@ -70,6 +70,9 @@ int main(int argc, char **argv) {
     // PetscCall(VecView(x, viewer));
     // PetscCall(PetscViewerDestroy(&viewer));
     // PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
+    // if (loop == 2) {
+    //   break;
+    // }
     PetscCall(formkappa(&test, x));
     PetscCall(formMatrix(&test, A));
     PetscCall(formRHS(&test, rhs, x));
@@ -79,18 +82,20 @@ int main(int argc, char **argv) {
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "iteration number: %d\n", iter));
     PetscCall(computeCostMMA(&test, t, &cost));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
-    PetscCall(adjointGradient1(&test, A, x, t, dc));
+    PetscCall(adjointGradient(&test, A, x, t, dc));
     PetscCall(formLimit(&test, loop, xlast, xllast, xlllast, mmaL, mmaU,
                         mmaLlast, mmaUlast, alpha, beta));
+    // PetscCall(VecView(alpha, PETSC_VIEWER_STDOUT_WORLD));
+    // PetscCall(VecView(beta, PETSC_VIEWER_STDOUT_WORLD));
     PetscCall(mma(&test, xlast, mmaU, mmaL, dc, alpha, beta, x, &initial));
-
 
     PetscCall(VecCopy(mmaL, mmaLlast));
     PetscCall(VecCopy(mmaU, mmaUlast));
     PetscCall(VecCopy(xllast, xlllast));
     PetscCall(VecCopy(xlast, xllast));
-    PetscCall(VecNorm(x, NORM_INFINITY, &change));
+
     PetscCall(VecAXPY(xlast, -1, x));
+    PetscCall(VecNorm(xlast, NORM_INFINITY, &change));
 
     PetscCall(VecCopy(x, xlast));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));
