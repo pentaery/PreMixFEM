@@ -16,10 +16,12 @@
 #define rmin 1.1
 #define volfrac 0.1
 #define cr 6
-#define f0 1
+#define f0 1e5
 #define penal 3
 #define mmas 0.85
 #define mmas0 0.15
+#define xCont 2e-3
+
 PetscErrorCode formBoundary(PCCtx *s_ctx);
 PetscErrorCode formkappa(PCCtx *s_ctx, Vec x);
 PetscErrorCode formMatrix(PCCtx *s_ctx, Mat A);
