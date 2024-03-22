@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
     
     PetscCall(computeCostMMA(&test, t, &cost));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
-    PetscCall(adjointGradient(&test, A, x, t, dc));
+    PetscCall(adjointGradient1(&test, A, x, t, dc));
     PetscCall(formLimit(&test, loop, xlast, xllast, xlllast, mmaL, mmaU,
                         mmaLlast, mmaUlast, alpha, beta));
 
