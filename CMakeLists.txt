@@ -52,6 +52,7 @@ set(SOURCES
  src/PreMixFEM_3D.c
  src/MMA.c
  src/optimization.c
+ src/oCriteria.c
 )
 SET(OUTPUT_NAME test)
 add_executable(${OUTPUT_NAME} ${SOURCES})

@@ -1,5 +1,6 @@
 #include "PreMixFEM_3D.h"
 #include "optimization.h"
+#include <oCriteria.h>
 #include <petscdm.h>
 #include <petscdmda.h>
 #include <petscdmdatypes.h>
@@ -27,7 +28,7 @@ int main(int argc, char **argv) {
   Vec rhs, t, x, dc, mmaL, mmaLlast, mmaU, mmaUlast, xlast, xllast, xlllast,
       alpha, beta;
   KSP ksp;
-  PetscInt loop = 0, iter = 0;
+  PetscInt loop = 0, iter = 0, penal = 1;
   PetscScalar change = 1, tau = 0;
 
   char str[80];
@@ -61,6 +62,13 @@ int main(int argc, char **argv) {
   PetscCall(formBoundary(&test));
 
   while (change > 0.01) {
+    // if (loop <= 10) {
+    //   penal = 1;
+    // } else if (loop <= 20) {
+    //   penal = 2;
+    // } else {
+    //   penal = 3;
+    // }
     loop += 1;
     PetscScalar initial = 0;
     PetscViewer viewer;
@@ -70,9 +78,9 @@ int main(int argc, char **argv) {
     PetscCall(VecView(x, viewer));
     PetscCall(PetscViewerDestroy(&viewer));
 
-    PetscCall(formkappa(&test, x));
+    PetscCall(formkappa(&test, x, penal));
     PetscCall(formMatrix(&test, A));
-    PetscCall(formRHS(&test, rhs, x));
+    PetscCall(formRHS(&test, rhs, x, penal));
     PetscCall(KSPSetOperators(ksp, A, A));
     PetscCall(KSPSolve(ksp, rhs, t));
     PetscCall(KSPGetIterationNumber(ksp, &iter));
@@ -82,16 +90,14 @@ int main(int argc, char **argv) {
     tau -= tD;
     tau *= xCont / f0;
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "tau: %f\n", tau));
-    
+
     PetscCall(computeCostMMA(&test, t, &cost));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
-    PetscCall(adjointGradient1(&test, A, x, t, dc));
+    PetscCall(adjointGradient(&test, A, x, t, dc, penal));
     PetscCall(formLimit(&test, loop, xlast, xllast, xlllast, mmaL, mmaU,
                         mmaLlast, mmaUlast, alpha, beta));
 
     PetscCall(mma(&test, xlast, mmaU, mmaL, dc, alpha, beta, x, &initial));
-
-
 
     PetscCall(VecCopy(mmaL, mmaLlast));
     PetscCall(VecCopy(mmaU, mmaUlast));
