@@ -16,7 +16,7 @@
 #define xCont 1e-6
 #define volfrac 0.1
 #define f0 1.0
-#define mmas 0.85
+#define mmas 0.75
 #define mmas0 0.15
 #define kH 1.0
 #define kL 2e-3

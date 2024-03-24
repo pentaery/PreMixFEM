@@ -62,9 +62,9 @@ int main(int argc, char **argv) {
   PetscCall(formBoundary(&test));
 
   while (change > 1e-5) {
-    if (loop <= 55) {
+    if (loop <= 40) {
       penal = 1;
-    } else if (loop <= 58) {
+    } else if (loop <= 50) {
       penal = 2;
     } else {
       penal = 3;
