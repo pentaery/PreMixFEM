@@ -12,16 +12,16 @@
 #include <petscvec.h>
 #include <petscviewer.h>
 
-#define tD 1e2
+#define tD 0
 
 #define volfrac 0.1
-#define f0 1
+#define f0 1.0
 #define mmas 0.85
 #define mmas0 0.15
 #define xCont 1e-6
-#define kH 1
-#define kL 1e-8
-#define xlow 1e-6
+#define kH 1.0
+#define kL 1e-3
+#define xlow 0
 
 PetscErrorCode formBoundary(PCCtx *s_ctx);
 PetscErrorCode formkappa(PCCtx *s_ctx, Vec x, PetscInt penal);

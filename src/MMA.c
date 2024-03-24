@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
   Vec rhs, t, x, dc, mmaL, mmaLlast, mmaU, mmaUlast, xlast, xllast, xlllast,
       alpha, beta;
   KSP ksp;
-  PetscInt loop = 0, iter = 0, penal = 1;
+  PetscInt loop = 0, iter = 0, penal = 3;
   PetscScalar change = 1, tau = 0;
 
   char str[80];
@@ -58,16 +58,19 @@ int main(int argc, char **argv) {
       KSPSetTolerances(ksp, 1e-6, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT));
   PetscCall(KSPSetFromOptions(ksp));
   //   PetscCall(KSPSetUp(ksp));
-  PetscCall(VecSet(x, 0.1));
+  PetscCall(VecSet(x, volfrac));
   PetscCall(formBoundary(&test));
 
-  while (change > 0.01) {
-    // if (loop <= 10) {
+  while (change > 1e-5) {
+    // if (loop <= 20) {
     //   penal = 1;
-    // } else if (loop <= 20) {
+    // } else if (loop <= 30) {
     //   penal = 2;
     // } else {
     //   penal = 3;
+    // }
+    // if (loop == 60) {
+    //   break;
     // }
     loop += 1;
     PetscScalar initial = 0;
@@ -84,11 +87,12 @@ int main(int argc, char **argv) {
     PetscCall(KSPSetOperators(ksp, A, A));
     PetscCall(KSPSolve(ksp, rhs, t));
     PetscCall(KSPGetIterationNumber(ksp, &iter));
+
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "iteration number: %d\n", iter));
 
     PetscCall(VecMax(t, NULL, &tau));
     tau -= tD;
-    tau *= xCont / f0;
+    tau *= kL / f0;
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "tau: %f\n", tau));
 
     PetscCall(computeCostMMA(&test, t, &cost));
