@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
       alpha, beta;
   KSP ksp;
   PetscInt loop = 0, iter = 0, penal = 3;
-  PetscScalar change = 1, tau = 0;
+  PetscScalar change = 1, tau = 0, initial = 0;
 
   char str[80];
 
@@ -62,18 +62,18 @@ int main(int argc, char **argv) {
   PetscCall(formBoundary(&test));
 
   while (change > 1e-5) {
-    // if (loop <= 20) {
-    //   penal = 1;
-    // } else if (loop <= 30) {
-    //   penal = 2;
-    // } else {
-    //   penal = 3;
-    // }
-    // if (loop == 60) {
-    //   break;
-    // }
+    if (loop <= 55) {
+      penal = 1;
+    } else if (loop <= 58) {
+      penal = 2;
+    } else {
+      penal = 3;
+    }
+    if (loop == 60) {
+      break;
+    }
     loop += 1;
-    PetscScalar initial = 0;
+
     PetscViewer viewer;
     sprintf(str, "../data/output/change%04d.vtr", loop);
     PetscCall(

@@ -229,10 +229,10 @@ PetscErrorCode formLimit(PCCtx *s_ctx, PetscInt loop, Vec xlast, Vec xllast,
               0) {
             arrayL[ez][ey][ex] =
                 arrayxlast[ez][ey][ex] -
-                mmas * (arrayxllast[ez][ey][ex] - arrayLlast[ez][ey][ex]);
+                (arrayxllast[ez][ey][ex] - arrayLlast[ez][ey][ex]) * mmas;
             arrayU[ez][ey][ex] =
                 arrayxlast[ez][ey][ex] +
-                mmas * (arrayUlast[ez][ey][ex] - arrayxllast[ez][ey][ex]);
+                (arrayUlast[ez][ey][ex] - arrayxllast[ez][ey][ex]) * mmas;
           } else {
             arrayL[ez][ey][ex] =
                 arrayxlast[ez][ey][ex] -
@@ -314,11 +314,11 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
   for (ez = startz; ez < startz + nz; ++ez) {
     for (ey = starty; ey < starty + ny; ++ey) {
       for (ex = startx; ex < startx + nx; ++ex) {
-        arraydc[ez][ey][ex] +=
-            penal * f0 * arraylambda[ez][ey][ex] * s_ctx->H_x * s_ctx->H_y *
-            s_ctx->H_z * PetscPowScalarReal(arrayx[ez][ey][ex], penal - 1);
+        arraydc[ez][ey][ex] -= penal * f0 * arraylambda[ez][ey][ex] *
+                               s_ctx->H_x * s_ctx->H_y * s_ctx->H_z *
+                               PetscPowScalar(arrayx[ez][ey][ex], penal - 1);
         if (ex > 0) {
-          arraydc[ez][ey][ex] +=
+          arraydc[ez][ey][ex] -=
               2 * penal * (kH - kL) *
               PetscPowScalar(arrayx[ez][ey][ex], penal - 1) * s_ctx->H_y *
               s_ctx->H_z / s_ctx->H_x *
@@ -327,10 +327,10 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
               (PetscPowScalar(
                   (arraykappa[0][ez][ey][ex] / arraykappa[0][ez][ey][ex - 1]) +
                       1,
-                  2));
+                  penal - 1));
         }
         if (ex < s_ctx->M - 1) {
-          arraydc[ez][ey][ex] +=
+          arraydc[ez][ey][ex] -=
               2 * penal * (kH - kL) *
               PetscPowScalar(arrayx[ez][ey][ex], penal - 1) * s_ctx->H_y *
               s_ctx->H_z / s_ctx->H_x *
@@ -339,10 +339,10 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
               (PetscPowScalar(
                   (arraykappa[0][ez][ey][ex] / arraykappa[0][ez][ey][ex + 1]) +
                       1,
-                  2));
+                  penal - 1));
         }
         if (ey > 0) {
-          arraydc[ez][ey][ex] +=
+          arraydc[ez][ey][ex] -=
               2 * penal * (kH - kL) *
               PetscPowScalar(arrayx[ez][ey][ex], penal - 1) * s_ctx->H_x *
               s_ctx->H_z / s_ctx->H_y *
@@ -351,10 +351,10 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
               (PetscPowScalar(
                   (arraykappa[1][ez][ey][ex] / arraykappa[1][ez][ey - 1][ex]) +
                       1,
-                  2));
+                  penal - 1));
         }
         if (ey < s_ctx->N - 1) {
-          arraydc[ez][ey][ex] +=
+          arraydc[ez][ey][ex] -=
               2 * penal * (kH - kL) *
               PetscPowScalar(arrayx[ez][ey][ex], penal - 1) * s_ctx->H_x *
               s_ctx->H_z / s_ctx->H_y *
@@ -363,10 +363,10 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
               (PetscPowScalar(
                   (arraykappa[1][ez][ey][ex] / arraykappa[1][ez][ey + 1][ex]) +
                       1,
-                  2));
+                  penal - 1));
         }
         if (ez > 0) {
-          arraydc[ez][ey][ex] +=
+          arraydc[ez][ey][ex] -=
               2 * penal * (kH - kL) *
               PetscPowScalar(arrayx[ez][ey][ex], penal - 1) * s_ctx->H_x *
               s_ctx->H_y / s_ctx->H_z *
@@ -375,10 +375,10 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
               (PetscPowScalar(
                   (arraykappa[2][ez][ey][ex] / arraykappa[2][ez - 1][ey][ex]) +
                       1,
-                  2));
+                  penal - 1));
         }
         if (ez < s_ctx->P - 1) {
-          arraydc[ez][ey][ex] +=
+          arraydc[ez][ey][ex] -=
               2 * penal * (kH - kL) *
               PetscPowScalar(arrayx[ez][ey][ex], penal - 1) * s_ctx->H_x *
               s_ctx->H_y / s_ctx->H_z *
@@ -387,14 +387,14 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
               (PetscPowScalar(
                   (arraykappa[2][ez][ey][ex] / arraykappa[2][ez + 1][ey][ex]) +
                       1,
-                  2));
+                  penal - 1));
         }
         if (arrayBoundary[ez][ey][ex] > 0.5) {
-          arraydc[ez][ey][ex] += 2 * penal * (kH - kL) *
+          arraydc[ez][ey][ex] -= 2 * penal * (kH - kL) *
                                  PetscPowScalar(arrayx[ez][ey][ex], penal - 1) *
                                  s_ctx->H_x * s_ctx->H_y / s_ctx->H_z *
                                  arrayt[ez][ey][ex] * arraylambda[ez][ey][ex];
-          arraydc[ez][ey][ex] -= 2 * penal * arraylambda[ez][ey][ex] *
+          arraydc[ez][ey][ex] += 2 * penal * arraylambda[ez][ey][ex] *
                                  (kH - kL) * s_ctx->H_x * s_ctx->H_y /
                                  s_ctx->H_z * tD *
                                  PetscPowScalar(arrayx[ez][ey][ex], penal - 1);
@@ -411,7 +411,6 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
     PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, kappa_loc[i], &arraykappa[i]));
     PetscCall(VecDestroy(&kappa_loc[i]));
   }
-  PetscCall(VecScale(dc, -1));
   PetscCall(VecDestroy(&dgT));
   PetscCall(VecDestroy(&t_loc));
   PetscCall(VecDestroy(&lambda_loc));
@@ -423,7 +422,7 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
 PetscErrorCode mma(PCCtx *s_ctx, Vec xlast, Vec mmaU, Vec mmaL, Vec dc,
                    Vec alpha, Vec beta, Vec x, PetscScalar *initial) {
   PetscFunctionBeginUser;
-  PetscScalar yL = 0, yU = 1000000;
+  PetscScalar yL = 0.0, yU = 1000000.0;
   PetscScalar derivative = 0, y = *initial;
   while (yU - yL > 1e-6) {
     y = (yL + yU) / 2;
@@ -475,7 +474,8 @@ PetscErrorCode computeDerivative(PCCtx *s_ctx, PetscScalar y,
   PetscCall(VecSum(Derivative, derivative));
   *derivative -= s_ctx->M * s_ctx->N * s_ctx->P * volfrac;
   PetscCall(VecDestroy(&Derivative));
-  // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "derivative: %f\n", *derivative));
+  // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "derivative: %f\n",
+  // *derivative));
   PetscFunctionReturn(0);
 }
 
@@ -659,162 +659,163 @@ PetscErrorCode mmatest(PCCtx *s_ctx, Vec xlast, Vec mmaU, Vec mmaL, Vec dc,
 
   PetscFunctionReturn(0);
 }
-PetscErrorCode adjointGradient1(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
-                                PetscInt penal) {
-  PetscFunctionBeginUser;
-  PetscInt ex, ey, ez, nx, ny, nz, startx, starty, startz, i;
-  PetscScalar ***arrayBoundary, ***arrayx, ***arraydf, ***arraydc, ***arrayt,
-      ***arraylambda, ***arraykappa[DIM];
-  Vec lambda, dgT, dF, df, kappa_loc[DIM], t_loc, lambda_loc;
-  KSP ksp1;
-  // calculate lambda
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &dgT));
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &lambda));
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &df));
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &dF));
-  PetscCall(VecSet(dgT, 1.0 / s_ctx->M / s_ctx->N / s_ctx->P));
-  PetscCall(VecSet(dc, 0));
-  PetscCall(VecSet(df, 0));
-  PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp1));
-  PetscCall(KSPSetOperators(ksp1, A, A));
-  PetscCall(KSPSetFromOptions(ksp1));
-  PetscCall(KSPSolve(ksp1, dgT, lambda));
-  PetscCall(KSPDestroy(&ksp1));
 
-  PetscCall(
-      DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
-  PetscCall(DMDAVecGetArray(s_ctx->dm, df, &arraydf));
-  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, s_ctx->boundary, &arrayBoundary));
-  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, x, &arrayx));
+// PetscErrorCode adjointGradient1(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
+//                                 PetscInt penal) {
+//   PetscFunctionBeginUser;
+//   PetscInt ex, ey, ez, nx, ny, nz, startx, starty, startz, i;
+//   PetscScalar ***arrayBoundary, ***arrayx, ***arraydf, ***arraydc, ***arrayt,
+//       ***arraylambda, ***arraykappa[DIM];
+//   Vec lambda, dgT, dF, df, kappa_loc[DIM], t_loc, lambda_loc;
+//   KSP ksp1;
+//   // calculate lambda
+//   PetscCall(DMCreateGlobalVector(s_ctx->dm, &dgT));
+//   PetscCall(DMCreateGlobalVector(s_ctx->dm, &lambda));
+//   PetscCall(DMCreateGlobalVector(s_ctx->dm, &df));
+//   PetscCall(DMCreateGlobalVector(s_ctx->dm, &dF));
+//   PetscCall(VecSet(dgT, 1.0 / s_ctx->M / s_ctx->N / s_ctx->P));
+//   PetscCall(VecSet(dc, 0));
+//   PetscCall(VecSet(df, 0));
+//   PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp1));
+//   PetscCall(KSPSetOperators(ksp1, A, A));
+//   PetscCall(KSPSetFromOptions(ksp1));
+//   PetscCall(KSPSolve(ksp1, dgT, lambda));
+//   PetscCall(KSPDestroy(&ksp1));
 
-  PetscCall(DMGetLocalVector(s_ctx->dm, &t_loc));
-  PetscCall(DMGlobalToLocal(s_ctx->dm, t, INSERT_VALUES, t_loc));
-  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, t_loc, &arrayt));
-  for (i = 0; i < DIM; ++i) {
-    PetscCall(DMGetLocalVector(s_ctx->dm, &kappa_loc[i]));
-    PetscCall(DMGlobalToLocal(s_ctx->dm, s_ctx->kappa[i], INSERT_VALUES,
-                              kappa_loc[i]));
-    PetscCall(DMDAVecGetArrayRead(s_ctx->dm, kappa_loc[i], &arraykappa[i]));
-  }
+//   PetscCall(
+//       DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
+//   PetscCall(DMDAVecGetArray(s_ctx->dm, df, &arraydf));
+//   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, s_ctx->boundary, &arrayBoundary));
+//   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, x, &arrayx));
 
-  for (ez = startz; ez < startz + nz; ++ez) {
-    for (ey = starty; ey < starty + ny; ++ey) {
-      for (ex = startx; ex < startx + nx; ++ex) {
-        arraydf[ez][ey][ex] -= 3 * f0 * s_ctx->H_x * s_ctx->H_y * s_ctx->H_z *
-                               arrayx[ez][ey][ex] * arrayx[ez][ey][ex];
-        if (arrayBoundary[ez][ey][ex] > 0.5) {
-          arraydf[ez][ey][ex] += 6 * (kH - kL) * s_ctx->H_x * s_ctx->H_y /
-                                 s_ctx->H_z * tD * arrayx[ez][ey][ex] *
-                                 arrayx[ez][ey][ex];
-        }
-      }
-    }
-  }
+//   PetscCall(DMGetLocalVector(s_ctx->dm, &t_loc));
+//   PetscCall(DMGlobalToLocal(s_ctx->dm, t, INSERT_VALUES, t_loc));
+//   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, t_loc, &arrayt));
+//   for (i = 0; i < DIM; ++i) {
+//     PetscCall(DMGetLocalVector(s_ctx->dm, &kappa_loc[i]));
+//     PetscCall(DMGlobalToLocal(s_ctx->dm, s_ctx->kappa[i], INSERT_VALUES,
+//                               kappa_loc[i]));
+//     PetscCall(DMDAVecGetArrayRead(s_ctx->dm, kappa_loc[i], &arraykappa[i]));
+//   }
 
-  PetscCall(DMDAVecRestoreArray(s_ctx->dm, df, &arraydf));
-  PetscCall(VecPointwiseMult(dF, df, lambda));
-  // finish computing dF
+//   for (ez = startz; ez < startz + nz; ++ez) {
+//     for (ey = starty; ey < starty + ny; ++ey) {
+//       for (ex = startx; ex < startx + nx; ++ex) {
+//         arraydf[ez][ey][ex] -= 3 * f0 * s_ctx->H_x * s_ctx->H_y * s_ctx->H_z
+//         *
+//                                arrayx[ez][ey][ex] * arrayx[ez][ey][ex];
+//         if (arrayBoundary[ez][ey][ex] > 0.5) {
+//           arraydf[ez][ey][ex] += 6 * (kH - kL) * s_ctx->H_x * s_ctx->H_y /
+//                                  s_ctx->H_z * tD * arrayx[ez][ey][ex] *
+//                                  arrayx[ez][ey][ex];
+//         }
+//       }
+//     }
+//   }
 
-  PetscCall(DMGetLocalVector(s_ctx->dm, &lambda_loc));
-  PetscCall(DMGlobalToLocal(s_ctx->dm, lambda, INSERT_VALUES, lambda_loc));
-  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, lambda_loc, &arraylambda));
+//   PetscCall(DMDAVecRestoreArray(s_ctx->dm, df, &arraydf));
+//   PetscCall(VecPointwiseMult(dF, df, lambda));
+//   // finish computing dF
 
-  // start computing dA
-  PetscCall(DMDAVecGetArray(s_ctx->dm, dc, &arraydc));
-  for (ez = startz; ez < startz + nz; ++ez) {
-    for (ey = starty; ey < starty + ny; ++ey) {
-      for (ex = startx; ex < startx + nx; ++ex) {
-        if (ex > 0) {
-          arraydc[ez][ey][ex] +=
-              6 * (1 - xCont) * PetscPowScalar(arrayx[ez][ey][ex], penal - 1) *
-              s_ctx->H_y * s_ctx->H_z / s_ctx->H_x *
-              (arrayt[ez][ey][ex] - arrayt[ez][ey][ex - 1]) *
-              (arraylambda[ez][ey][ex] - arraylambda[ez][ey][ex - 1]) /
-              (PetscPowScalar(
-                  (arraykappa[0][ez][ey][ex] / arraykappa[0][ez][ey][ex - 1]) +
-                      1,
-                  2));
-        }
-        if (ex < s_ctx->M - 1) {
-          arraydc[ez][ey][ex] +=
-              6 * (1 - xCont) * PetscPowScalar(arrayx[ez][ey][ex], penal - 1) *
-              s_ctx->H_y * s_ctx->H_z / s_ctx->H_x *
-              (arrayt[ez][ey][ex + 1] - arrayt[ez][ey][ex]) *
-              (arraylambda[ez][ey][ex + 1] - arraylambda[ez][ey][ex]) /
-              (PetscPowScalar(
-                  (arraykappa[0][ez][ey][ex] / arraykappa[0][ez][ey][ex + 1]) +
-                      1,
-                  2));
-        }
-        if (ey > 0) {
-          arraydc[ez][ey][ex] +=
-              6 * (1 - xCont) * PetscPowScalar(arrayx[ez][ey][ex], penal - 1) *
-              s_ctx->H_x * s_ctx->H_z / s_ctx->H_y *
-              (arrayt[ez][ey][ex] - arrayt[ez][ey - 1][ex]) *
-              (arraylambda[ez][ey][ex] - arraylambda[ez][ey - 1][ex]) /
-              (PetscPowScalar(
-                  (arraykappa[1][ez][ey][ex] / arraykappa[1][ez][ey - 1][ex]) +
-                      1,
-                  2));
-        }
-        if (ey < s_ctx->N - 1) {
-          arraydc[ez][ey][ex] +=
-              6 * (1 - xCont) * PetscPowScalar(arrayx[ez][ey][ex], penal - 1) *
-              s_ctx->H_x * s_ctx->H_z / s_ctx->H_y *
-              (arrayt[ez][ey + 1][ex] - arrayt[ez][ey][ex]) *
-              (arraylambda[ez][ey + 1][ex] - arraylambda[ez][ey][ex]) /
-              (PetscPowScalar(
-                  (arraykappa[1][ez][ey][ex] / arraykappa[1][ez][ey + 1][ex]) +
-                      1,
-                  2));
-        }
-        if (ez > 0) {
-          arraydc[ez][ey][ex] +=
-              6 * (1 - xCont) * PetscPowScalar(arrayx[ez][ey][ex], penal - 1) *
-              s_ctx->H_x * s_ctx->H_y / s_ctx->H_z *
-              (arrayt[ez][ey][ex] - arrayt[ez - 1][ey][ex]) *
-              (arraylambda[ez][ey][ex] - arraylambda[ez - 1][ey][ex]) /
-              (PetscPowScalar(
-                  (arraykappa[2][ez][ey][ex] / arraykappa[2][ez - 1][ey][ex]) +
-                      1,
-                  2));
-        }
-        if (ez < s_ctx->P - 1) {
-          arraydc[ez][ey][ex] +=
-              6 * (1 - xCont) * PetscPowScalar(arrayx[ez][ey][ex], penal - 1) *
-              s_ctx->H_x * s_ctx->H_y / s_ctx->H_z *
-              (arrayt[ez + 1][ey][ex] - arrayt[ez][ey][ex]) *
-              (arraylambda[ez + 1][ey][ex] - arraylambda[ez][ey][ex]) /
-              (PetscPowScalar(
-                  (arraykappa[2][ez][ey][ex] / arraykappa[2][ez + 1][ey][ex]) +
-                      1,
-                  2));
-        }
-        if (arrayBoundary[ez][ey][ex] > 0.5) {
-          arraydc[ez][ey][ex] += 6 * (1 - xCont) * arrayx[ez][ey][ex] *
-                                 arrayx[ez][ey][ex] * s_ctx->H_x * s_ctx->H_y /
-                                 s_ctx->H_z * arrayt[ez][ey][ex] *
-                                 arraylambda[ez][ey][ex];
-        }
-      }
-    }
-  }
-  PetscCall(
-      DMDAVecRestoreArrayRead(s_ctx->dm, s_ctx->boundary, &arrayBoundary));
-  PetscCall(DMDAVecRestoreArray(s_ctx->dm, dc, &arraydc));
-  PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, x, &arrayx));
-  PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, t_loc, &arrayt));
-  for (i = 0; i < DIM; ++i) {
-    PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, kappa_loc[i], &arraykappa[i]));
-    PetscCall(VecDestroy(&kappa_loc[i]));
-  }
-  PetscCall(VecAYPX(dc, -1, dF));
+//   PetscCall(DMGetLocalVector(s_ctx->dm, &lambda_loc));
+//   PetscCall(DMGlobalToLocal(s_ctx->dm, lambda, INSERT_VALUES, lambda_loc));
+//   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, lambda_loc, &arraylambda));
 
-  PetscCall(VecDestroy(&dgT));
-  PetscCall(VecDestroy(&t_loc));
-  PetscCall(VecDestroy(&lambda_loc));
-  PetscCall(VecDestroy(&df));
-  PetscCall(VecDestroy(&dF));
-  PetscFunctionReturn(0);
-}
+//   // start computing dA
+//   PetscCall(DMDAVecGetArray(s_ctx->dm, dc, &arraydc));
+//   for (ez = startz; ez < startz + nz; ++ez) {
+//     for (ey = starty; ey < starty + ny; ++ey) {
+//       for (ex = startx; ex < startx + nx; ++ex) {
+//         if (ex > 0) {
+//           arraydc[ez][ey][ex] +=
+//               6 * (1 - xCont) * PetscPowScalar(arrayx[ez][ey][ex], penal - 1)
+//               * s_ctx->H_y * s_ctx->H_z / s_ctx->H_x * (arrayt[ez][ey][ex] -
+//               arrayt[ez][ey][ex - 1]) * (arraylambda[ez][ey][ex] -
+//               arraylambda[ez][ey][ex - 1]) / (PetscPowScalar(
+//                   (arraykappa[0][ez][ey][ex] / arraykappa[0][ez][ey][ex - 1])
+//                   +
+//                       1,
+//                   2));
+//         }
+//         if (ex < s_ctx->M - 1) {
+//           arraydc[ez][ey][ex] +=
+//               6 * (1 - xCont) * PetscPowScalar(arrayx[ez][ey][ex], penal - 1)
+//               * s_ctx->H_y * s_ctx->H_z / s_ctx->H_x * (arrayt[ez][ey][ex +
+//               1] - arrayt[ez][ey][ex]) * (arraylambda[ez][ey][ex + 1] -
+//               arraylambda[ez][ey][ex]) / (PetscPowScalar(
+//                   (arraykappa[0][ez][ey][ex] / arraykappa[0][ez][ey][ex + 1])
+//                   +
+//                       1,
+//                   2));
+//         }
+//         if (ey > 0) {
+//           arraydc[ez][ey][ex] +=
+//               6 * (1 - xCont) * PetscPowScalar(arrayx[ez][ey][ex], penal - 1)
+//               * s_ctx->H_x * s_ctx->H_z / s_ctx->H_y * (arrayt[ez][ey][ex] -
+//               arrayt[ez][ey - 1][ex]) * (arraylambda[ez][ey][ex] -
+//               arraylambda[ez][ey - 1][ex]) / (PetscPowScalar(
+//                   (arraykappa[1][ez][ey][ex] / arraykappa[1][ez][ey - 1][ex])
+//                   +
+//                       1,
+//                   2));
+//         }
+//         if (ey < s_ctx->N - 1) {
+//           arraydc[ez][ey][ex] +=
+//               6 * (1 - xCont) * PetscPowScalar(arrayx[ez][ey][ex], penal - 1)
+//               * s_ctx->H_x * s_ctx->H_z / s_ctx->H_y * (arrayt[ez][ey +
+//               1][ex] - arrayt[ez][ey][ex]) * (arraylambda[ez][ey + 1][ex] -
+//               arraylambda[ez][ey][ex]) / (PetscPowScalar(
+//                   (arraykappa[1][ez][ey][ex] / arraykappa[1][ez][ey + 1][ex])
+//                   +
+//                       1,
+//                   2));
+//         }
+//         if (ez > 0) {
+//           arraydc[ez][ey][ex] +=
+//               6 * (1 - xCont) * PetscPowScalar(arrayx[ez][ey][ex], penal - 1)
+//               * s_ctx->H_x * s_ctx->H_y / s_ctx->H_z * (arrayt[ez][ey][ex] -
+//               arrayt[ez - 1][ey][ex]) * (arraylambda[ez][ey][ex] -
+//               arraylambda[ez - 1][ey][ex]) / (PetscPowScalar(
+//                   (arraykappa[2][ez][ey][ex] / arraykappa[2][ez - 1][ey][ex])
+//                   +
+//                       1,
+//                   2));
+//         }
+//         if (ez < s_ctx->P - 1) {
+//           arraydc[ez][ey][ex] +=
+//               6 * (1 - xCont) * PetscPowScalar(arrayx[ez][ey][ex], penal - 1)
+//               * s_ctx->H_x * s_ctx->H_y / s_ctx->H_z * (arrayt[ez +
+//               1][ey][ex] - arrayt[ez][ey][ex]) * (arraylambda[ez + 1][ey][ex]
+//               - arraylambda[ez][ey][ex]) / (PetscPowScalar(
+//                   (arraykappa[2][ez][ey][ex] / arraykappa[2][ez + 1][ey][ex])
+//                   +
+//                       1,
+//                   2));
+//         }
+//         if (arrayBoundary[ez][ey][ex] > 0.5) {
+//           arraydc[ez][ey][ex] += 6 * (1 - xCont) * arrayx[ez][ey][ex] *
+//                                  arrayx[ez][ey][ex] * s_ctx->H_x * s_ctx->H_y
+//                                  / s_ctx->H_z * arrayt[ez][ey][ex] *
+//                                  arraylambda[ez][ey][ex];
+//         }
+//       }
+//     }
+//   }
+//   PetscCall(
+//       DMDAVecRestoreArrayRead(s_ctx->dm, s_ctx->boundary, &arrayBoundary));
+//   PetscCall(DMDAVecRestoreArray(s_ctx->dm, dc, &arraydc));
+//   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, x, &arrayx));
+//   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, t_loc, &arrayt));
+//   for (i = 0; i < DIM; ++i) {
+//     PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, kappa_loc[i],
+//     &arraykappa[i])); PetscCall(VecDestroy(&kappa_loc[i]));
+//   }
+//   PetscCall(VecAYPX(dc, -1, dF));
 
+//   PetscCall(VecDestroy(&dgT));
+//   PetscCall(VecDestroy(&t_loc));
+//   PetscCall(VecDestroy(&lambda_loc));
+//   PetscCall(VecDestroy(&df));
+//   PetscCall(VecDestroy(&dF));
+//   PetscFunctionReturn(0);
+// }

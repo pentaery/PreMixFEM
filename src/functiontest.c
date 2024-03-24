@@ -28,9 +28,10 @@ int main(int argc, char **argv) {
   // Mat A;
   // Vec rhs, t, x, dc;
   // KSP ksp;
-
+  PetscScalar c = 3.0 / 4.0 * 5.0 / 6.0;
+  PetscPrintf(PETSC_COMM_WORLD, "%f\n", c);
   PetscCall(PC_init(&test, dom, mesh));
-  PetscCall(PC_print_info(&test));
+  // PetscCall(PC_print_info(&test));
 
   // PetscCall(DMCreateMatrix(test.dm, &A));
   // PetscCall(DMCreateGlobalVector(test.dm, &rhs));
