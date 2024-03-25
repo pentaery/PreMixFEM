@@ -28,9 +28,10 @@ int main(int argc, char **argv) {
   // Mat A;
   // Vec rhs, t, x, dc;
   // KSP ksp;
-  PetscScalar c = 3.0 / 4.0 * 5.0 / 6.0;
+  PetscScalar c = PetscPowScalar(100.1, 0);
+
   PetscPrintf(PETSC_COMM_WORLD, "%f\n", c);
-  PetscCall(PC_init(&test, dom, mesh));
+  // PetscCall(PC_init(&test, dom, mesh));
   // PetscCall(PC_print_info(&test));
 
   // PetscCall(DMCreateMatrix(test.dm, &A));
@@ -55,11 +56,11 @@ int main(int argc, char **argv) {
   // PetscCall(VecDestroy(&x));
   // PetscCall(KSPDestroy(&ksp));
   // PetscCall(PetscFinalize());
-  PetscCall(DMCreateGlobalVector(test.dm, &a));
-  PetscCall(DMCreateGlobalVector(test.dm, &b));
-  PetscCall(VecSet(a, 1));
-  PetscCall(VecSet(b, 2));
-  PetscCall(VecPointwiseMax(a, a, b));
-  PetscCall(VecView(a, PETSC_VIEWER_STDOUT_WORLD));
+  // PetscCall(DMCreateGlobalVector(test.dm, &a));
+  // PetscCall(DMCreateGlobalVector(test.dm, &b));
+  // PetscCall(VecSet(a, 1));
+  // PetscCall(VecSet(b, 2));
+  // PetscCall(VecPointwiseMax(a, a, b));
+  // PetscCall(VecView(a, PETSC_VIEWER_STDOUT_WORLD));
   PetscCall(PetscFinalize());
 }

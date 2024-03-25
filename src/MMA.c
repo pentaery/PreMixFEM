@@ -19,21 +19,22 @@ int main(int argc, char **argv) {
   PetscCall(
       PetscInitialize(&argc, &argv, (char *)0, "Toplogical Optimiazation\n"));
   PCCtx test;
+  MMAx mmax;
   PetscInt grid = 20;
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-mesh", &grid, NULL));
   PetscInt mesh[3] = {grid, grid, grid};
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
   PetscScalar cost = 0;
   Mat A;
-  Vec rhs, t, x, dc, mmaL, mmaLlast, mmaU, mmaUlast, xlast, xllast, xlllast,
-      alpha, beta;
+  Vec rhs, t, x, dc;
   KSP ksp;
-  PetscInt loop = 0, iter = 0, penal = 3;
-  PetscScalar change = 1, tau = 0, initial = 0;
+  PetscInt loop = 0, iter = 0, penal =3;
+  PetscScalar change = 1, tau = 0, initial = 0, maxdc = 0, mindc = 0;
 
   char str[80];
 
   PetscCall(PC_init(&test, dom, mesh));
+  PetscCall(mmaInit(&test, &mmax));
   PetscCall(PC_print_info(&test));
 
   PetscCall(DMCreateMatrix(test.dm, &A));
@@ -41,9 +42,6 @@ int main(int argc, char **argv) {
   PetscCall(DMCreateGlobalVector(test.dm, &x));
   PetscCall(DMCreateGlobalVector(test.dm, &t));
   PetscCall(DMCreateGlobalVector(test.dm, &dc));
-
-
-
 
   PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
   PetscCall(
@@ -54,9 +52,9 @@ int main(int argc, char **argv) {
   PetscCall(formBoundary(&test));
 
   while (change > 1e-5) {
-    if (loop <= 40) {
+    if (loop <= 50) {
       penal = 1;
-    } else if (loop <= 50) {
+    } else if (loop <= 55) {
       penal = 2;
     } else {
       penal = 3;
@@ -90,19 +88,17 @@ int main(int argc, char **argv) {
     PetscCall(computeCostMMA(&test, t, &cost));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
     PetscCall(adjointGradient(&test, A, x, t, dc, penal));
-    PetscCall(formLimit(&test, loop, xlast, xllast, xlllast, mmaL, mmaU,
-                        mmaLlast, mmaUlast, alpha, beta));
 
-    PetscCall(mma(&test, xlast, mmaU, mmaL, dc, alpha, beta, x, &initial));
+    // PetscCall(VecMax(dc, NULL, &maxdc));
+    // PetscCall(VecMin(dc, NULL, &mindc));
+    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "maxdc: %f\n", maxdc));
+    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "mindc: %f\n", mindc));
 
-    PetscCall(VecCopy(mmaL, mmaLlast));
-    PetscCall(VecCopy(mmaU, mmaUlast));
-    PetscCall(VecCopy(xllast, xlllast));
-    PetscCall(VecCopy(xlast, xllast));
+    PetscCall(formLimit(&test, &mmax, loop));
 
-    PetscCall(VecAXPY(xlast, -1, x));
-    PetscCall(VecNorm(xlast, NORM_INFINITY, &change));
-    PetscCall(VecCopy(x, xlast));
+    PetscCall(mma(&test, &mmax, dc, x, &initial));
+
+    PetscCall(computeChange(&mmax, x, &change));
 
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "loop: %d\n", loop));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));
@@ -113,16 +109,10 @@ int main(int argc, char **argv) {
   PetscCall(VecDestroy(&t));
   PetscCall(VecDestroy(&dc));
   PetscCall(VecDestroy(&x));
-  PetscCall(VecDestroy(&mmaL));
-  PetscCall(VecDestroy(&mmaU));
-  PetscCall(VecDestroy(&xlast));
-  PetscCall(VecDestroy(&xllast));
-  PetscCall(VecDestroy(&xlllast));
-  PetscCall(VecDestroy(&mmaLlast));
-  PetscCall(VecDestroy(&mmaUlast));
-  PetscCall(VecDestroy(&alpha));
-  PetscCall(VecDestroy(&beta));
+
   PetscCall(KSPDestroy(&ksp));
+  PetscCall(mmaFinal(&mmax));
+  // PetscCall(PC_final(&test));
 
   PetscCall(PetscFinalize());
 }
