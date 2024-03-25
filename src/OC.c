@@ -1,5 +1,6 @@
 #include "PreMixFEM_3D.h"
-#include "optimization.h"
+#include "oCriteria.h"
+#include "system.h"
 #include <petscdm.h>
 #include <petscdmda.h>
 #include <petscdmdatypes.h>
@@ -59,9 +60,9 @@ int main(int argc, char **argv) {
     PetscCall(VecView(x, viewer));
     PetscCall(PetscViewerDestroy(&viewer));
 
-    PetscCall(formkappa(&test, x));
+    PetscCall(formkappa(&test, x, 3));
     PetscCall(formMatrix(&test, A));
-    PetscCall(formRHS(&test, rhs, x));
+    PetscCall(formRHS(&test, rhs, x, 3));
     PetscCall(KSPSetOperators(ksp, A, A));
     PetscCall(KSPSolve(ksp, rhs, t));
     PetscCall(KSPGetIterationNumber(ksp, &iter));

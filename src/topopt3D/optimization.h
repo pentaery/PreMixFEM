@@ -12,20 +12,11 @@
 #include <petscvec.h>
 #include <petscviewer.h>
 
-#define tD 0.0
-#define xCont 1e-6
-#define volfrac 0.1
-#define f0 1.0
-#define mmas 0.75
-#define mmas0 0.15
-#define kH 1.0
-#define kL 2e-3
-#define xlow 0
+typedef struct mma_text {
+  Vec mmaL, mmaU, mmaLlast, mmaUlast, alpha, beta, xlast, xllast, xlllast;
+} MMAx;
 
-PetscErrorCode formBoundary(PCCtx *s_ctx);
-PetscErrorCode formkappa(PCCtx *s_ctx, Vec x, PetscInt penal);
-PetscErrorCode formMatrix(PCCtx *s_ctx, Mat A);
-PetscErrorCode formRHS(PCCtx *s_ctx, Vec rhs, Vec x, PetscInt penal);
+PetscErrorCode mmaInit(PCCtx *s_ctx, MMAx *mma_text);
 
 PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
                                PetscInt penal);

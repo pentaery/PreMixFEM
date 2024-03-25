@@ -1,6 +1,6 @@
 #include "PreMixFEM_3D.h"
 #include "optimization.h"
-#include <oCriteria.h>
+#include "system.h"
 #include <petscdm.h>
 #include <petscdmda.h>
 #include <petscdmdatypes.h>
@@ -41,17 +41,9 @@ int main(int argc, char **argv) {
   PetscCall(DMCreateGlobalVector(test.dm, &x));
   PetscCall(DMCreateGlobalVector(test.dm, &t));
   PetscCall(DMCreateGlobalVector(test.dm, &dc));
-  PetscCall(DMCreateGlobalVector(test.dm, &mmaL));
-  PetscCall(DMCreateGlobalVector(test.dm, &mmaU));
-  PetscCall(DMCreateGlobalVector(test.dm, &xlast));
-  PetscCall(DMCreateGlobalVector(test.dm, &xllast));
-  PetscCall(DMCreateGlobalVector(test.dm, &xlllast));
-  PetscCall(DMCreateGlobalVector(test.dm, &mmaLlast));
-  PetscCall(DMCreateGlobalVector(test.dm, &mmaUlast));
-  PetscCall(DMCreateGlobalVector(test.dm, &alpha));
-  PetscCall(DMCreateGlobalVector(test.dm, &beta));
 
-  PetscCall(VecSet(xlast, volfrac));
+
+
 
   PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
   PetscCall(
