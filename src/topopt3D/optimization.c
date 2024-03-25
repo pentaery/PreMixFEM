@@ -424,7 +424,7 @@ PetscErrorCode mma(PCCtx *s_ctx, Vec xlast, Vec mmaU, Vec mmaL, Vec dc,
   PetscFunctionBeginUser;
   PetscScalar yL = 0.0, yU = 1000000.0;
   PetscScalar derivative = 0, y = *initial;
-  while (yU - yL > 1e-6) {
+  while (yU - yL > 1e-8) {
     y = (yL + yU) / 2;
     PetscCall(computeDerivative(s_ctx, y, &derivative, xlast, mmaU, mmaL, dc,
                                 alpha, beta, x));
@@ -434,6 +434,7 @@ PetscErrorCode mma(PCCtx *s_ctx, Vec xlast, Vec mmaU, Vec mmaL, Vec dc,
       yU = y;
     }
   }
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "y: %f\n", y));
   PetscFunctionReturn(0);
 }
 

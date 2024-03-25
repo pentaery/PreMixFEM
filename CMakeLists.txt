@@ -51,7 +51,7 @@ project(PreMixFEM)
 set(SOURCES 
  src/PreMixFEM_3D.c
  src/MMA.c
- src/optimization.c
+ src/topopt3D/optimization.c
  src/oCriteria.c
 )
 SET(OUTPUT_NAME test)
@@ -59,6 +59,7 @@ add_executable(${OUTPUT_NAME} ${SOURCES})
 target_include_directories(${OUTPUT_NAME}
   PRIVATE
   ${PROJECT_SOURCE_DIR}/src
+  ${PROJECT_SOURCE_DIR}/src/topopt3D
 )
 find_package(PkgConfig REQUIRED)
 pkg_search_module(PETSC REQUIRED IMPORTED_TARGET PETSc)
