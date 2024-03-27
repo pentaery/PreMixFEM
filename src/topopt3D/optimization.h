@@ -12,7 +12,7 @@
 #include <petscvec.h>
 #include <petscviewer.h>
 
-#define mmas 0.75
+#define mmas 0.85
 #define mmas0 0.15
 
 typedef struct mma_text {

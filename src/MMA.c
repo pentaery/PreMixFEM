@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
   Mat A;
   Vec rhs, t, x, dc;
   KSP ksp;
-  PetscInt loop = 0, iter = 0, penal = 2;
+  PetscInt loop = 0, iter = 0, penal = 3;
   PetscScalar change = 1, tau = 0, initial = 0, maxdc = 0, mindc = 0;
 
   char str[80];
@@ -51,17 +51,17 @@ int main(int argc, char **argv) {
   //   PetscCall(KSPSetUp(ksp));
   PetscCall(VecSet(x, volfrac));
   PetscCall(formBoundary(&test));
-  while (PETSC_TRUE) {
+  while (change > 1e-3) {
     if (loop <= 40) {
       penal = 1;
-    } else if (loop <= 50) {
+    } else if (loop <= 60) {
       penal = 2;
     } else {
       penal = 3;
     }
-    if (loop == 60) {
-      break;
-    }
+    // if (loop == 60) {
+    //   break;
+    // }
     loop += 1;
     PetscViewer viewer;
     sprintf(str, "../data/output/change%04d.vtr", loop);
@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
     PetscCall(adjointGradient(&test, A, x, t, dc, penal));
     // PetscCall(computeGradient(&test, x, t, dc, penal));
-    // 
+    //
     // PetscCall(VecMax(dc, NULL, &maxdc));
     // PetscCall(VecMin(dc, NULL, &mindc));
     // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "maxdc: %f\n", maxdc));
@@ -97,6 +97,7 @@ int main(int argc, char **argv) {
     PetscCall(formLimit(&test, &mmax, loop));
 
     PetscCall(mma(&test, &mmax, dc, x, &initial));
+    PetscCall(mmatest(&test, &mmax, dc, x, &initial));
 
     PetscCall(computeChange(&mmax, x, &change));
 
