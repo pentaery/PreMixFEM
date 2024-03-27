@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
   // Mat A;
   // Vec rhs, t, x, dc;
   // KSP ksp;
-  PetscScalar c = PetscPowScalar(100.1, 0);
+  PetscScalar c = 1.0/3+1;
 
   PetscPrintf(PETSC_COMM_WORLD, "%f\n", c);
   // PetscCall(PC_init(&test, dom, mesh));

@@ -51,8 +51,10 @@ project(PreMixFEM)
 set(SOURCES 
  src/PreMixFEM_3D.c
  src/MMA.c
+# src/test/functiontest.c
  src/topopt3D/optimization.c
  src/topopt3D/system.c
+ src/topopt3D/oCriteria.c
 )
 SET(OUTPUT_NAME test)
 add_executable(${OUTPUT_NAME} ${SOURCES})

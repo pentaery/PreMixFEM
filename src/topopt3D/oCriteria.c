@@ -1,6 +1,7 @@
 #include "PreMixFEM_3D.h"
 #include "mpi.h"
 #include "optimization.h"
+#include "system.h"
 #include <H5Spublic.h>
 #include <oCriteria.h>
 #include <petscdm.h>
@@ -60,7 +61,8 @@ PetscErrorCode computeCost(PCCtx *s_ctx, Vec t, Vec rhs, PetscScalar *cost) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode computeGradient(PCCtx *s_ctx, Vec x, Vec t, Vec dc) {
+PetscErrorCode computeGradient(PCCtx *s_ctx, Vec x, Vec t, Vec dc,
+                               PetscInt penal) {
   PetscFunctionBeginUser;
   PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez, i;
   PetscScalar ***arrayt, ***arraydc, ***arrayx, ***arrayBoundary,
@@ -88,9 +90,9 @@ PetscErrorCode computeGradient(PCCtx *s_ctx, Vec x, Vec t, Vec dc) {
     for (ey = starty; ey < starty + ny; ++ey) {
       for (ex = startx; ex < startx + nx; ++ex) {
         if (ex >= 1) {
-          arraydc[ez][ey][ex] += 6 * (1 - xCont) / s_ctx->H_x * s_ctx->H_y *
-                                 s_ctx->H_z * arrayx[ez][ey][ex] *
-                                 arrayx[ez][ey][ex] *
+          arraydc[ez][ey][ex] += 2 * penal * (kH - kL) / s_ctx->H_x *
+                                 s_ctx->H_y * s_ctx->H_z *
+                                 PetscPowScalar(arrayx[ez][ey][ex], penal - 1) *
                                  (arrayt[ez][ey][ex] - arrayt[ez][ey][ex - 1]) *
                                  (arrayt[ez][ey][ex] - arrayt[ez][ey][ex - 1]) /
                                  ((1 + arr_kappa_3d[0][ez][ey][ex] /
@@ -99,9 +101,9 @@ PetscErrorCode computeGradient(PCCtx *s_ctx, Vec x, Vec t, Vec dc) {
                                            arr_kappa_3d[0][ez][ey][ex - 1]));
         }
         if (ex < s_ctx->M - 1) {
-          arraydc[ez][ey][ex] += 6 * (1 - xCont) / s_ctx->H_x * s_ctx->H_y *
-                                 s_ctx->H_z * arrayx[ez][ey][ex] *
-                                 arrayx[ez][ey][ex] *
+          arraydc[ez][ey][ex] += 2 * penal * (kH - kL) / s_ctx->H_x *
+                                 s_ctx->H_y * s_ctx->H_z *
+                                 PetscPowScalar(arrayx[ez][ey][ex], penal - 1) *
                                  (arrayt[ez][ey][ex + 1] - arrayt[ez][ey][ex]) *
                                  (arrayt[ez][ey][ex + 1] - arrayt[ez][ey][ex]) /
                                  ((1 + arr_kappa_3d[0][ez][ey][ex] /
@@ -110,9 +112,9 @@ PetscErrorCode computeGradient(PCCtx *s_ctx, Vec x, Vec t, Vec dc) {
                                            arr_kappa_3d[0][ez][ey][ex + 1]));
         }
         if (ey >= 1) {
-          arraydc[ez][ey][ex] += 6 * (1 - xCont) * s_ctx->H_x / s_ctx->H_y *
-                                 s_ctx->H_z * arrayx[ez][ey][ex] *
-                                 arrayx[ez][ey][ex] *
+          arraydc[ez][ey][ex] += 2 * penal * (kH - kL) * s_ctx->H_x /
+                                 s_ctx->H_y * s_ctx->H_z *
+                                 PetscPowScalar(arrayx[ez][ey][ex], penal - 1) *
                                  (arrayt[ez][ey][ex] - arrayt[ez][ey - 1][ex]) *
                                  (arrayt[ez][ey][ex] - arrayt[ez][ey - 1][ex]) /
                                  ((1 + arr_kappa_3d[1][ez][ey][ex] /
@@ -121,9 +123,9 @@ PetscErrorCode computeGradient(PCCtx *s_ctx, Vec x, Vec t, Vec dc) {
                                            arr_kappa_3d[1][ez][ey - 1][ex]));
         }
         if (ey < s_ctx->N - 1) {
-          arraydc[ez][ey][ex] += 6 * (1 - xCont) * s_ctx->H_x / s_ctx->H_y *
-                                 s_ctx->H_z * arrayx[ez][ey][ex] *
-                                 arrayx[ez][ey][ex] *
+          arraydc[ez][ey][ex] += 2 * penal * (kH - kL) * s_ctx->H_x /
+                                 s_ctx->H_y * s_ctx->H_z *
+                                 PetscPowScalar(arrayx[ez][ey][ex], penal - 1) *
                                  (arrayt[ez][ey + 1][ex] - arrayt[ez][ey][ex]) *
                                  (arrayt[ez][ey + 1][ex] - arrayt[ez][ey][ex]) /
                                  ((1 + arr_kappa_3d[1][ez][ey][ex] /
@@ -132,9 +134,9 @@ PetscErrorCode computeGradient(PCCtx *s_ctx, Vec x, Vec t, Vec dc) {
                                            arr_kappa_3d[1][ez][ey + 1][ex]));
         }
         if (ez >= 1) {
-          arraydc[ez][ey][ex] += 6 * (1 - xCont) * s_ctx->H_x * s_ctx->H_y /
-                                 s_ctx->H_z * arrayx[ez][ey][ex] *
-                                 arrayx[ez][ey][ex] *
+          arraydc[ez][ey][ex] += 2 * penal * (kH - kL) * s_ctx->H_x *
+                                 s_ctx->H_y / s_ctx->H_z *
+                                 PetscPowScalar(arrayx[ez][ey][ex], penal - 1) *
                                  (arrayt[ez][ey][ex] - arrayt[ez - 1][ey][ex]) *
                                  (arrayt[ez][ey][ex] - arrayt[ez - 1][ey][ex]) /
                                  ((1 + arr_kappa_3d[2][ez][ey][ex] /
@@ -143,9 +145,9 @@ PetscErrorCode computeGradient(PCCtx *s_ctx, Vec x, Vec t, Vec dc) {
                                            arr_kappa_3d[2][ez - 1][ey][ex]));
         }
         if (ez < s_ctx->P - 1) {
-          arraydc[ez][ey][ex] += 6 * (1 - xCont) * s_ctx->H_x * s_ctx->H_y /
-                                 s_ctx->H_z * arrayx[ez][ey][ex] *
-                                 arrayx[ez][ey][ex] *
+          arraydc[ez][ey][ex] += 2 * penal * (kH - kL) * s_ctx->H_x *
+                                 s_ctx->H_y / s_ctx->H_z *
+                                 PetscPowScalar(arrayx[ez][ey][ex], penal - 1) *
                                  (arrayt[ez + 1][ey][ex] - arrayt[ez][ey][ex]) *
                                  (arrayt[ez + 1][ey][ex] - arrayt[ez][ey][ex]) /
                                  ((1 + arr_kappa_3d[2][ez][ey][ex] /
@@ -153,10 +155,10 @@ PetscErrorCode computeGradient(PCCtx *s_ctx, Vec x, Vec t, Vec dc) {
                                   (1 + arr_kappa_3d[2][ez][ey][ex] /
                                            arr_kappa_3d[2][ez + 1][ey][ex]));
         }
-        if (arrayBoundary[ez][ey][ex] == 1) {
+        if (arrayBoundary[ez][ey][ex] > 0.5) {
           arraydc[ez][ey][ex] +=
-              6 * (1 - xCont) * s_ctx->H_x * s_ctx->H_y / s_ctx->H_z *
-              arrayx[ez][ey][ex] * arrayx[ez][ey][ex] *
+              2 * penal * (kH - kL) * s_ctx->H_x * s_ctx->H_y / s_ctx->H_z *
+              PetscPowScalar(arrayx[ez][ey][ex], penal - 1) *
               (arrayt[ez][ey][ex] - tD) * (arrayt[ez][ey][ex] - tD);
         }
       }

@@ -1,4 +1,5 @@
 #include "PreMixFEM_3D.h"
+#include "oCriteria.h"
 #include "optimization.h"
 #include "system.h"
 #include <petscdm.h>
@@ -28,7 +29,7 @@ int main(int argc, char **argv) {
   Mat A;
   Vec rhs, t, x, dc;
   KSP ksp;
-  PetscInt loop = 0, iter = 0, penal =3;
+  PetscInt loop = 0, iter = 0, penal = 2;
   PetscScalar change = 1, tau = 0, initial = 0, maxdc = 0, mindc = 0;
 
   char str[80];
@@ -50,11 +51,10 @@ int main(int argc, char **argv) {
   //   PetscCall(KSPSetUp(ksp));
   PetscCall(VecSet(x, volfrac));
   PetscCall(formBoundary(&test));
-
-  while (change > 1e-5) {
-    if (loop <= 50) {
+  while (PETSC_TRUE) {
+    if (loop <= 40) {
       penal = 1;
-    } else if (loop <= 55) {
+    } else if (loop <= 50) {
       penal = 2;
     } else {
       penal = 3;
@@ -63,7 +63,6 @@ int main(int argc, char **argv) {
       break;
     }
     loop += 1;
-
     PetscViewer viewer;
     sprintf(str, "../data/output/change%04d.vtr", loop);
     PetscCall(
@@ -88,7 +87,8 @@ int main(int argc, char **argv) {
     PetscCall(computeCostMMA(&test, t, &cost));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
     PetscCall(adjointGradient(&test, A, x, t, dc, penal));
-
+    // PetscCall(computeGradient(&test, x, t, dc, penal));
+    // 
     // PetscCall(VecMax(dc, NULL, &maxdc));
     // PetscCall(VecMin(dc, NULL, &mindc));
     // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "maxdc: %f\n", maxdc));

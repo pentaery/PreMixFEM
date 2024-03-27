@@ -12,11 +12,11 @@
 #include <petscvec.h>
 #include <petscviewer.h>
 
-#define mmas 0.85
+#define mmas 0.75
 #define mmas0 0.15
 
 typedef struct mma_text {
-  Vec mmaL, mmaU, mmaLlast, mmaUlast, alpha, beta, xlast, xllast, xlllast;
+  Vec mmaL, mmaU, mmaLlast, mmaUlast, alpha, beta, xlast, xllast, xlllast,lbd,ubd;
 } MMAx;
 
 PetscErrorCode mmaInit(PCCtx *s_ctx, MMAx *mma_text);

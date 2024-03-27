@@ -28,7 +28,11 @@ PetscErrorCode mmaInit(PCCtx *s_ctx, MMAx *mma_text) {
   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->mmaUlast));
   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->alpha));
   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->beta));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->lbd));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->ubd));
   PetscCall(VecSet(mma_text->xlast, volfrac));
+  PetscCall(VecSet(mma_text->lbd, 0));
+  PetscCall(VecSet(mma_text->ubd, 1));
   PetscFunctionReturn(0);
 }
 
@@ -43,16 +47,13 @@ PetscErrorCode mmaFinal(MMAx *mma_text) {
   PetscCall(VecDestroy(&mma_text->mmaUlast));
   PetscCall(VecDestroy(&mma_text->alpha));
   PetscCall(VecDestroy(&mma_text->beta));
+  PetscCall(VecDestroy(&mma_text->lbd));
+  PetscCall(VecDestroy(&mma_text->ubd));
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode formLimit(PCCtx *s_ctx, MMAx *mma_text, PetscInt loop) {
   PetscFunctionBeginUser;
-  Vec lbd, ubd;
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &lbd));
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &ubd));
-  PetscCall(VecSet(lbd, xlow));
-  PetscCall(VecSet(ubd, 1));
   if (loop <= 2) {
     PetscCall(VecSet(mma_text->mmaL, -mmas0));
     PetscCall(VecSet(mma_text->mmaU, mmas0));
@@ -60,8 +61,8 @@ PetscErrorCode formLimit(PCCtx *s_ctx, MMAx *mma_text, PetscInt loop) {
                           mma_text->mmaL));
     PetscCall(VecAXPBYPCZ(mma_text->beta, 0.1, 0.9, 0, mma_text->xlast,
                           mma_text->mmaU));
-    PetscCall(VecPointwiseMax(mma_text->alpha, mma_text->alpha, lbd));
-    PetscCall(VecPointwiseMin(mma_text->beta, mma_text->beta, ubd));
+    PetscCall(VecPointwiseMax(mma_text->alpha, mma_text->alpha, mma_text->lbd));
+    PetscCall(VecPointwiseMin(mma_text->beta, mma_text->beta, mma_text->ubd));
   } else {
     PetscScalar ***arrayxlast, ***arrayxllast, ***arrayxlllast, ***arrayL,
         ***arrayU, ***arrayLlast, ***arrayUlast;
@@ -114,11 +115,10 @@ PetscErrorCode formLimit(PCCtx *s_ctx, MMAx *mma_text, PetscInt loop) {
                           mma_text->mmaL));
     PetscCall(VecAXPBYPCZ(mma_text->beta, 0.1, 0.9, 0, mma_text->xlast,
                           mma_text->mmaU));
-    PetscCall(VecPointwiseMax(mma_text->alpha, mma_text->alpha, lbd));
-    PetscCall(VecPointwiseMin(mma_text->beta, mma_text->beta, ubd));
+    PetscCall(VecPointwiseMax(mma_text->alpha, mma_text->alpha, mma_text->lbd));
+    PetscCall(VecPointwiseMin(mma_text->beta, mma_text->beta, mma_text->ubd));
   }
-  PetscCall(VecDestroy(&lbd));
-  PetscCall(VecDestroy(&ubd));
+
   PetscFunctionReturn(0);
 }
 PetscErrorCode computeCostMMA(PCCtx *s_ctx, Vec t, PetscScalar *cost) {
@@ -172,13 +172,13 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
     for (ey = starty; ey < starty + ny; ++ey) {
       for (ex = startx; ex < startx + nx; ++ex) {
         arraydc[ez][ey][ex] -= penal * f0 * arraylambda[ez][ey][ex] *
-                               s_ctx->H_x * s_ctx->H_y * s_ctx->H_z *
+                               (s_ctx->H_x * s_ctx->H_y * s_ctx->H_z) *
                                PetscPowScalar(arrayx[ez][ey][ex], penal - 1);
         if (ex > 0) {
           arraydc[ez][ey][ex] -=
               2 * penal * (kH - kL) *
-              PetscPowScalar(arrayx[ez][ey][ex], penal - 1) * s_ctx->H_y *
-              s_ctx->H_z / s_ctx->H_x *
+              PetscPowScalar(arrayx[ez][ey][ex], penal - 1) *
+              (s_ctx->H_y * s_ctx->H_z / s_ctx->H_x) *
               (arrayt[ez][ey][ex] - arrayt[ez][ey][ex - 1]) *
               (arraylambda[ez][ey][ex] - arraylambda[ez][ey][ex - 1]) /
               (PetscPowScalar(
@@ -189,8 +189,8 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
         if (ex < s_ctx->M - 1) {
           arraydc[ez][ey][ex] -=
               2 * penal * (kH - kL) *
-              PetscPowScalar(arrayx[ez][ey][ex], penal - 1) * s_ctx->H_y *
-              s_ctx->H_z / s_ctx->H_x *
+              PetscPowScalar(arrayx[ez][ey][ex], penal - 1) *
+              (s_ctx->H_y * s_ctx->H_z / s_ctx->H_x) *
               (arrayt[ez][ey][ex + 1] - arrayt[ez][ey][ex]) *
               (arraylambda[ez][ey][ex + 1] - arraylambda[ez][ey][ex]) /
               (PetscPowScalar(
@@ -201,8 +201,8 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
         if (ey > 0) {
           arraydc[ez][ey][ex] -=
               2 * penal * (kH - kL) *
-              PetscPowScalar(arrayx[ez][ey][ex], penal - 1) * s_ctx->H_x *
-              s_ctx->H_z / s_ctx->H_y *
+              PetscPowScalar(arrayx[ez][ey][ex], penal - 1) *
+              (s_ctx->H_x * s_ctx->H_z / s_ctx->H_y) *
               (arrayt[ez][ey][ex] - arrayt[ez][ey - 1][ex]) *
               (arraylambda[ez][ey][ex] - arraylambda[ez][ey - 1][ex]) /
               (PetscPowScalar(
@@ -213,8 +213,8 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
         if (ey < s_ctx->N - 1) {
           arraydc[ez][ey][ex] -=
               2 * penal * (kH - kL) *
-              PetscPowScalar(arrayx[ez][ey][ex], penal - 1) * s_ctx->H_x *
-              s_ctx->H_z / s_ctx->H_y *
+              PetscPowScalar(arrayx[ez][ey][ex], penal - 1) *
+              (s_ctx->H_x * s_ctx->H_z / s_ctx->H_y) *
               (arrayt[ez][ey + 1][ex] - arrayt[ez][ey][ex]) *
               (arraylambda[ez][ey + 1][ex] - arraylambda[ez][ey][ex]) /
               (PetscPowScalar(
@@ -225,8 +225,8 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
         if (ez > 0) {
           arraydc[ez][ey][ex] -=
               2 * penal * (kH - kL) *
-              PetscPowScalar(arrayx[ez][ey][ex], penal - 1) * s_ctx->H_x *
-              s_ctx->H_y / s_ctx->H_z *
+              PetscPowScalar(arrayx[ez][ey][ex], penal - 1) *
+              (s_ctx->H_x * s_ctx->H_y / s_ctx->H_z) *
               (arrayt[ez][ey][ex] - arrayt[ez - 1][ey][ex]) *
               (arraylambda[ez][ey][ex] - arraylambda[ez - 1][ey][ex]) /
               (PetscPowScalar(
@@ -237,8 +237,8 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
         if (ez < s_ctx->P - 1) {
           arraydc[ez][ey][ex] -=
               2 * penal * (kH - kL) *
-              PetscPowScalar(arrayx[ez][ey][ex], penal - 1) * s_ctx->H_x *
-              s_ctx->H_y / s_ctx->H_z *
+              PetscPowScalar(arrayx[ez][ey][ex], penal - 1) *
+              (s_ctx->H_x * s_ctx->H_y / s_ctx->H_z) *
               (arrayt[ez + 1][ey][ex] - arrayt[ez][ey][ex]) *
               (arraylambda[ez + 1][ey][ex] - arraylambda[ez][ey][ex]) /
               (PetscPowScalar(
@@ -249,11 +249,11 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
         if (arrayBoundary[ez][ey][ex] > 0.5) {
           arraydc[ez][ey][ex] -= 2 * penal * (kH - kL) *
                                  PetscPowScalar(arrayx[ez][ey][ex], penal - 1) *
-                                 s_ctx->H_x * s_ctx->H_y / s_ctx->H_z *
+                                 (s_ctx->H_x * s_ctx->H_y / s_ctx->H_z) *
                                  arrayt[ez][ey][ex] * arraylambda[ez][ey][ex];
           arraydc[ez][ey][ex] += 2 * penal * arraylambda[ez][ey][ex] *
-                                 (kH - kL) * s_ctx->H_x * s_ctx->H_y /
-                                 s_ctx->H_z * tD *
+                                 (kH - kL) *
+                                 (s_ctx->H_x * s_ctx->H_y / s_ctx->H_z) * tD *
                                  PetscPowScalar(arrayx[ez][ey][ex], penal - 1);
         }
       }

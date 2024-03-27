@@ -1,5 +1,5 @@
-#include <PreMixFEM_3D.h>
 #include "system.h"
+#include <PreMixFEM_3D.h>
 #include <petscdm.h>
 #include <petscdmda.h>
 #include <petscdmdatypes.h>
@@ -172,7 +172,7 @@ PetscErrorCode formRHS(PCCtx *s_ctx, Vec rhs, Vec x, PetscInt penal) {
       for (ex = startx; ex < startx + nx; ex++) {
         array[ez][ey][ex] += s_ctx->H_x * s_ctx->H_y * s_ctx->H_z * f0 *
                              (1 - PetscPowScalar(arrayx[ez][ey][ex], penal));
-        if (arrayBoundary[ez][ey][ex] == 1) {
+        if (arrayBoundary[ez][ey][ex] > 0.5) {
           array[ez][ey][ex] += 2 * arraykappa[ez][ey][ex] * tD * s_ctx->H_x *
                                s_ctx->H_y / s_ctx->H_z;
         }

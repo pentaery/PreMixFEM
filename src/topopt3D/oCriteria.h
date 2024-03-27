@@ -12,7 +12,8 @@
 #include <petscvec.h>
 #include <petscviewer.h>
 #define rmin 1.1
-PetscErrorCode computeGradient(PCCtx *s_ctx, Vec x, Vec t, Vec dc);
+PetscErrorCode computeGradient(PCCtx *s_ctx, Vec x, Vec t, Vec dc,
+                               PetscInt penal);
 PetscErrorCode filter(PCCtx *s_ctx, Vec dc, Vec x);
 PetscErrorCode computeCost(PCCtx *s_ctx, Vec t, Vec rhs, PetscScalar *cost);
 PetscErrorCode optimalCriteria(PCCtx *s_ctx, Vec x, Vec dc,
