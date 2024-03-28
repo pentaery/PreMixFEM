@@ -30,7 +30,8 @@ int main(int argc, char **argv) {
   Vec rhs, t, x, dc;
   KSP ksp;
   PetscInt loop = 0, iter = 0, penal = 3;
-  PetscScalar change = 1, tau = 0, initial = 0, maxdc = 0, mindc = 0;
+  PetscScalar change = 1, tau = 0, initial = 0, maxdc = 0, mindc = 0,
+              xvolfrac = 0;
 
   char str[80];
 
@@ -51,8 +52,8 @@ int main(int argc, char **argv) {
   //   PetscCall(KSPSetUp(ksp));
   PetscCall(VecSet(x, volfrac));
   PetscCall(formBoundary(&test));
-  while (change > 1e-3) {
-    if (loop <= 40) {
+  while (change > 1e-4) {
+    if (loop <= 50) {
       penal = 1;
     } else if (loop <= 60) {
       penal = 2;
@@ -63,12 +64,17 @@ int main(int argc, char **argv) {
     //   break;
     // }
     loop += 1;
-    PetscViewer viewer;
-    sprintf(str, "../data/output/change%04d.vtr", loop);
-    PetscCall(
-        PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
-    PetscCall(VecView(x, viewer));
-    PetscCall(PetscViewerDestroy(&viewer));
+
+    PetscCall(VecSum(x, &xvolfrac));
+    xvolfrac /= test.M * test.N * test.P;
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "xvolfrac: %f\n", xvolfrac));
+
+    // PetscViewer viewer;
+    // sprintf(str, "../data/output/change%04d.vtr", loop);
+    // PetscCall(
+    //     PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
+    // PetscCall(VecView(x, viewer));
+    // PetscCall(PetscViewerDestroy(&viewer));
 
     PetscCall(formkappa(&test, x, penal));
     PetscCall(formMatrix(&test, A));
