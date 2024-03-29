@@ -16,7 +16,8 @@
 #define mmas0 0.15
 
 typedef struct mma_text {
-  Vec mmaL, mmaU, mmaLlast, mmaUlast, alpha, beta, xlast, xllast, xlllast,lbd,ubd;
+  Vec mmaL, mmaU, mmaLlast, mmaUlast, alpha, beta, xlast, xllast, xlllast, lbd,
+      ubd;
 } MMAx;
 
 PetscErrorCode mmaInit(PCCtx *s_ctx, MMAx *mma_text);
@@ -33,6 +34,10 @@ PetscErrorCode computeDerivative(PCCtx *s_ctx, PetscScalar y,
                                  Vec dc, Vec x);
 PetscErrorCode mma(PCCtx *s_ctx, MMAx *mma_text, Vec dc, Vec x,
                    PetscScalar *initial);
+PetscErrorCode mma1(PCCtx *s_ctx, MMAx *mma_text, Vec dc, Vec x,
+                    PetscScalar *initial);
+PetscErrorCode mma2(PCCtx *s_ctx, MMAx *mma_text, Vec dc, Vec x,
+                    PetscScalar *initial);
 
 PetscErrorCode findX(PCCtx *s_ctx, PetscScalar y, MMAx *mma_text, Vec dc,
                      Vec x);

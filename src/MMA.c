@@ -93,17 +93,18 @@ int main(int argc, char **argv) {
     PetscCall(computeCostMMA(&test, t, &cost));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
     PetscCall(adjointGradient(&test, A, x, t, dc, penal));
-    // PetscCall(computeGradient(&test, x, t, dc, penal));
-    //
-    // PetscCall(VecMax(dc, NULL, &maxdc));
-    // PetscCall(VecMin(dc, NULL, &mindc));
-    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "maxdc: %f\n", maxdc));
-    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "mindc: %f\n", mindc));
+    PetscCall(computeGradient(&test, x, t, dc, penal));
+    
+    PetscCall(VecMax(dc, NULL, &maxdc));
+    PetscCall(VecMin(dc, NULL, &mindc));
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "maxdc: %f\n", maxdc));
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "mindc: %f\n", mindc));
 
     PetscCall(formLimit(&test, &mmax, loop));
 
     PetscCall(mma(&test, &mmax, dc, x, &initial));
     PetscCall(mmatest(&test, &mmax, dc, x, &initial));
+
 
     PetscCall(computeChange(&mmax, x, &change));
 

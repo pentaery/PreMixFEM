@@ -303,8 +303,40 @@ PetscErrorCode mma(PCCtx *s_ctx, MMAx *mma_text, Vec dc, Vec x,
   }
   y = (yL + yU) / 2;
   PetscCall(computeDerivative(s_ctx, y, &derivative, mma_text, dc, x));
+  PetscCall(computeWy(s_ctx, y, &derivative, mma_text, dc, x));
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "value:%f\n", derivative));
   PetscCall(PetscPrintf(PETSC_COMM_WORLD, "y: %.12f\n", y));
   PetscCall(PetscPrintf(PETSC_COMM_WORLD, "derivative: %f\n", derivative));
+  PetscFunctionReturn(0);
+}
+PetscErrorCode mma1(PCCtx *s_ctx, MMAx *mma_text, Vec dc, Vec x,
+                    PetscScalar *initial) {
+  PetscFunctionBeginUser;
+  PetscScalar y1 = 0, y2 = 1, y = 0;
+  y = (y1 + y2) / 2;
+  while (y2 - y1 > 1e-6) {
+    PetscCall(findX(s_ctx, y, mma_text, dc, x));
+    
+  }
+
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "y: %f\n", y));
+
+  PetscFunctionReturn(0);
+}
+PetscErrorCode mma2(PCCtx *s_ctx, MMAx *mma_text, Vec dc, Vec x,
+                    PetscScalar *initial) {
+  PetscFunctionBeginUser;
+  PetscScalar y = 0, wy = 0, wylast = -100000;
+  for (y = 0; y < 0.2; y += 0.0005) {
+    PetscCall(findX(s_ctx, y, mma_text, dc, x));
+    PetscCall(computeWy(s_ctx, y, &wy, mma_text, dc, x));
+    if (wy < wylast) {
+      break;
+    }
+    wylast = wy;
+  }
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "y: %f\n", y));
+
   PetscFunctionReturn(0);
 }
 
@@ -505,8 +537,8 @@ PetscErrorCode mmatest(PCCtx *s_ctx, MMAx *mma_text, Vec dc, Vec x,
                        PetscScalar *initial) {
   PetscFunctionBeginUser;
   PetscScalar y = 0, derivative = 0, value = 0;
-  for (y = 0; y < 1; y += 0.01) {
-
+  for (y = 0; y < 0.3; y += 0.005) {
+    PetscCall(findX(s_ctx, y, mma_text, dc, x));
     PetscCall(computeDerivative(s_ctx, y, &derivative, mma_text, dc, x));
     PetscCall(computeWy(s_ctx, y, &value, mma_text, dc, x));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "y: %f\n", y));
