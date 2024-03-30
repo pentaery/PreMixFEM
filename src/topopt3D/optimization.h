@@ -17,7 +17,7 @@
 
 typedef struct mma_text {
   Vec mmaL, mmaU, mmaLlast, mmaUlast, alpha, beta, xlast, xllast, xlllast, lbd,
-      ubd;
+      ubd, xsign;
 } MMAx;
 
 PetscErrorCode mmaInit(PCCtx *s_ctx, MMAx *mma_text);
