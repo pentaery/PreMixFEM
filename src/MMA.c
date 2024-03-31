@@ -71,12 +71,12 @@ int main(int argc, char **argv) {
     PetscCall(VecMax(x, NULL, &xvolfrac));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "xmax: %f\n", xvolfrac));
 
-    PetscViewer viewer;
-    sprintf(str, "../data/output/change%04d.vtr", loop);
-    PetscCall(
-        PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
-    PetscCall(VecView(x, viewer));
-    PetscCall(PetscViewerDestroy(&viewer));
+    // PetscViewer viewer;
+    // sprintf(str, "../data/output/change%04d.vtr", loop);
+    // PetscCall(
+    //     PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
+    // PetscCall(VecView(x, viewer));
+    // PetscCall(PetscViewerDestroy(&viewer));
 
     PetscCall(formkappa(&test, x, penal));
     PetscCall(formMatrix(&test, A));
@@ -103,9 +103,8 @@ int main(int argc, char **argv) {
 
     PetscCall(formLimit(&test, &mmax, loop));
 
-    PetscCall(mma(&test, &mmax, dc, x, &initial));
     // PetscCall(mmatest(&test, &mmax, dc, x, &initial));
-
+    PetscCall(mma(&test, &mmax, dc, x, &initial));
 
     PetscCall(computeChange(&mmax, x, &change));
 
