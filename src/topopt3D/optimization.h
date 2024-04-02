@@ -30,8 +30,11 @@ PetscErrorCode adjointGradient1(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
 PetscErrorCode formLimit(PCCtx *s_ctx, MMAx *mma_text, PetscInt loop);
 PetscErrorCode computeCostMMA(PCCtx *s_ctx, Vec t, PetscScalar *cost);
 PetscErrorCode computeDerivative(PCCtx *s_ctx, PetscScalar y,
-                                 PetscScalar *derivative, MMAx *mma_text,
-                                 Vec dc, Vec x);
+                                 PetscScalar *derivative, PetscScalar *dpartial,
+                                 MMAx *mma_text, Vec dc, Vec x);
+PetscErrorCode computeDerivative1(PCCtx *s_ctx, PetscScalar y,
+                                  PetscScalar *derivative, MMAx *mma_text,
+                                  Vec dc, Vec x);
 PetscErrorCode mma(PCCtx *s_ctx, MMAx *mma_text, Vec dc, Vec x,
                    PetscScalar *initial);
 PetscErrorCode mma1(PCCtx *s_ctx, MMAx *mma_text, Vec dc, Vec x,

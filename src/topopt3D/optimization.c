@@ -296,10 +296,11 @@ PetscErrorCode mma(PCCtx *s_ctx, MMAx *mma_text, Vec dc, Vec x,
                    PetscScalar *initial) {
   PetscFunctionBeginUser;
   PetscScalar yL = 0.0, yU = 1000000.0;
-  PetscScalar derivative = 2, y = *initial, wy;
+  PetscScalar derivative = 2, y = *initial, wy, dpartial;
   while (derivative > 1 || derivative < -1) {
     y = (yL + yU) / 2;
-    PetscCall(computeDerivative(s_ctx, y, &derivative, mma_text, dc, x));
+    PetscCall(
+        computeDerivative(s_ctx, y, &derivative, &dpartial, mma_text, dc, x));
     if (derivative > 0) {
       yL = y;
     } else {
@@ -309,6 +310,7 @@ PetscErrorCode mma(PCCtx *s_ctx, MMAx *mma_text, Vec dc, Vec x,
   // y = (yL + yU) / 2;
   // PetscCall(computeDerivative(s_ctx, y, &derivative, mma_text, dc, x));
   PetscCall(PetscPrintf(PETSC_COMM_WORLD, "derivative: %f\n", derivative));
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "dpartial: %f\n", dpartial));
   PetscCall(computeWy(s_ctx, y, &wy, mma_text, dc, x));
   PetscCall(PetscPrintf(PETSC_COMM_WORLD, "value:%f\n", wy));
   PetscCall(PetscPrintf(PETSC_COMM_WORLD, "y: %.12f\n", y));
@@ -347,17 +349,19 @@ PetscErrorCode mma2(PCCtx *s_ctx, MMAx *mma_text, Vec dc, Vec x,
 }
 
 PetscErrorCode computeDerivative(PCCtx *s_ctx, PetscScalar y,
-                                 PetscScalar *derivative, MMAx *mma_text,
-                                 Vec dc, Vec x) {
+                                 PetscScalar *derivative, PetscScalar *dpartial,
+                                 MMAx *mma_text, Vec dc, Vec x) {
   PetscFunctionBeginUser;
   PetscCall(findX(s_ctx, y, mma_text, dc, x));
   // PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
   PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
   PetscScalar ***arrayxlast, ***arrayU, ***arrayL, ***arrayderivative,
-      ***arrayx, ***arraysign, ***arraydc;
-  Vec Derivative;
+      ***arrayx, ***arraysign, ***arraydc, ***arraydsign;
+  Vec Derivative, dsign;
   PetscCall(DMCreateGlobalVector(s_ctx->dm, &Derivative));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &dsign));
   PetscCall(VecSet(Derivative, 0));
+  PetscCall(VecSet(dsign, 0));
   PetscCall(
       DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mma_text->xlast, &arrayxlast));
@@ -367,6 +371,7 @@ PetscErrorCode computeDerivative(PCCtx *s_ctx, PetscScalar y,
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mma_text->xsign, &arraysign));
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, dc, &arraydc));
   PetscCall(DMDAVecGetArray(s_ctx->dm, Derivative, &arrayderivative));
+  PetscCall(DMDAVecGetArray(s_ctx->dm, dsign, &arraydsign));
 
   for (ez = startz; ez < startz + nz; ++ez) {
     for (ey = starty; ey < starty + ny; ++ey) {
@@ -377,18 +382,18 @@ PetscErrorCode computeDerivative(PCCtx *s_ctx, PetscScalar y,
             (arrayU[ez][ey][ex] - arrayx[ez][ey][ex]);
         arrayderivative[ez][ey][ex] +=
             (2 * arrayxlast[ez][ey][ex] - arrayU[ez][ey][ex]);
-        // arrayderivative[ez][ey][ex] +=
-        //     y * (arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex]) *
-        //     (arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex]) *
-        //     arraysign[ez][ey][ex] /
-        //     ((arrayU[ez][ey][ex] - arrayx[ez][ey][ex]) *
-        //      (arrayU[ez][ey][ex] - arrayx[ez][ey][ex]));
-        // arrayderivative[ez][ey][ex] -=
-        //     (-arraydc[ez][ey][ex] * arraysign[ez][ey][ex] *
-        //      (arrayxlast[ez][ey][ex] - arrayL[ez][ey][ex]) *
-        //      (arrayxlast[ez][ey][ex] - arrayL[ez][ey][ex])) /
-        //     ((arrayx[ez][ey][ex] - arrayL[ez][ey][ex]) *
-        //      (arrayx[ez][ey][ex] - arrayL[ez][ey][ex]));
+        arraydsign[ez][ey][ex] +=
+            y * (arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex]) *
+            (arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex]) *
+            arraysign[ez][ey][ex] /
+            ((arrayU[ez][ey][ex] - arrayx[ez][ey][ex]) *
+             (arrayU[ez][ey][ex] - arrayx[ez][ey][ex]));
+        arraydsign[ez][ey][ex] -=
+            (-arraydc[ez][ey][ex]) * arraysign[ez][ey][ex] *
+            (arrayxlast[ez][ey][ex] - arrayL[ez][ey][ex]) *
+            (arrayxlast[ez][ey][ex] - arrayL[ez][ey][ex]) /
+            ((arrayx[ez][ey][ex] - arrayL[ez][ey][ex]) *
+             (arrayx[ez][ey][ex] - arrayL[ez][ey][ex]));
       }
     }
   }
@@ -398,12 +403,15 @@ PetscErrorCode computeDerivative(PCCtx *s_ctx, PetscScalar y,
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, x, &arrayx));
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, dc, &arraydc));
   PetscCall(DMDAVecRestoreArray(s_ctx->dm, Derivative, &arrayderivative));
+  PetscCall(DMDAVecRestoreArray(s_ctx->dm, dsign, &arraydsign));
   PetscCall(VecSum(Derivative, derivative));
+  PetscCall(VecSum(dsign, dpartial));
   *derivative -= s_ctx->M * s_ctx->N * s_ctx->P * volfrac;
-  PetscCall(VecDestroy(&Derivative));
-  // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "derivative: %f\n",
-  // *derivative));
+  *derivative += *dpartial;
+
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, mma_text->xsign, &arraysign));
+  PetscCall(VecDestroy(&Derivative));
+  PetscCall(VecDestroy(&dsign));
   PetscFunctionReturn(0);
 }
 
@@ -577,16 +585,82 @@ PetscErrorCode computeWy(PCCtx *s_ctx, PetscScalar y, PetscScalar *wy,
 PetscErrorCode mmatest(PCCtx *s_ctx, MMAx *mma_text, Vec dc, Vec x,
                        PetscScalar *initial) {
   PetscFunctionBeginUser;
-  PetscScalar y = 0, derivative = 0, value = 0;
+  PetscScalar y = 0, derivative = 0, derivative1 = 0, value = 0, dpartial = 0;
   for (y = 0; y < 0.15; y += 0.001) {
-    PetscCall(findX(s_ctx, y, mma_text, dc, x));
-    PetscCall(computeDerivative(s_ctx, y, &derivative, mma_text, dc, x));
+    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "y: %f\n", y));
+    PetscCall(
+        computeDerivative(s_ctx, y, &derivative, &dpartial, mma_text, dc, x));
+    // PetscCall(VecView(mma_text->xsign, PETSC_VIEWER_STDOUT_WORLD));
+    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "derivative: %f\n", derivative));
+    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "derivative1: %f\n",
+    // derivative1));
+    if (derivative1 - derivative > 1e-6 || derivative1 - derivative < -1e-8) {
+      PetscCall(PetscPrintf(PETSC_COMM_WORLD, "oops!\n"));
+    }
     PetscCall(computeWy(s_ctx, y, &value, mma_text, dc, x));
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "y: %f\n", y));
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "derivative: %f\n", derivative));
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "value: %f\n", value));
+    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "value: %f\n", value));
   }
 
+  PetscFunctionReturn(0);
+}
+PetscErrorCode computeDerivative1(PCCtx *s_ctx, PetscScalar y,
+                                  PetscScalar *derivative, MMAx *mma_text,
+                                  Vec dc, Vec x) {
+  PetscFunctionBeginUser;
+  PetscCall(findX(s_ctx, y, mma_text, dc, x));
+  // PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
+  PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
+  PetscScalar ***arrayxlast, ***arrayU, ***arrayL, ***arrayderivative,
+      ***arrayx, ***arraysign, ***arraydc;
+  Vec Derivative;
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &Derivative));
+  PetscCall(VecSet(Derivative, 0));
+  PetscCall(
+      DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
+  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mma_text->xlast, &arrayxlast));
+  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mma_text->mmaU, &arrayU));
+  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mma_text->mmaL, &arrayL));
+  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, x, &arrayx));
+  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mma_text->xsign, &arraysign));
+  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, dc, &arraydc));
+  PetscCall(DMDAVecGetArray(s_ctx->dm, Derivative, &arrayderivative));
+
+  for (ez = startz; ez < startz + nz; ++ez) {
+    for (ey = starty; ey < starty + ny; ++ey) {
+      for (ex = startx; ex < startx + nx; ++ex) {
+        arrayderivative[ez][ey][ex] +=
+            ((arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex]) *
+             (arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex])) /
+            (arrayU[ez][ey][ex] - arrayx[ez][ey][ex]);
+        arrayderivative[ez][ey][ex] +=
+            (2 * arrayxlast[ez][ey][ex] - arrayU[ez][ey][ex]);
+        // arrayderivative[ez][ey][ex] +=
+        //     y * (arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex]) *
+        //     (arrayU[ez][ey][ex] - arrayxlast[ez][ey][ex]) *
+        //     arraysign[ez][ey][ex] /
+        //     ((arrayU[ez][ey][ex] - arrayx[ez][ey][ex]) *
+        //      (arrayU[ez][ey][ex] - arrayx[ez][ey][ex]));
+        // arrayderivative[ez][ey][ex] -=
+        //     (-arraydc[ez][ey][ex] * arraysign[ez][ey][ex] *
+        //      (arrayxlast[ez][ey][ex] - arrayL[ez][ey][ex]) *
+        //      (arrayxlast[ez][ey][ex] - arrayL[ez][ey][ex])) /
+        //     ((arrayx[ez][ey][ex] - arrayL[ez][ey][ex]) *
+        //      (arrayx[ez][ey][ex] - arrayL[ez][ey][ex]));
+      }
+    }
+  }
+  PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, mma_text->xlast, &arrayxlast));
+  PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, mma_text->mmaU, &arrayU));
+  PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, mma_text->mmaL, &arrayL));
+  PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, x, &arrayx));
+  PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, dc, &arraydc));
+  PetscCall(DMDAVecRestoreArray(s_ctx->dm, Derivative, &arrayderivative));
+  PetscCall(VecSum(Derivative, derivative));
+  *derivative -= s_ctx->M * s_ctx->N * s_ctx->P * volfrac;
+  PetscCall(VecDestroy(&Derivative));
+  // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "derivative: %f\n",
+  // *derivative));
+  PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, mma_text->xsign, &arraysign));
   PetscFunctionReturn(0);
 }
 

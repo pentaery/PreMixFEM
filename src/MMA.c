@@ -105,7 +105,6 @@ int main(int argc, char **argv) {
 
     // PetscCall(mmatest(&test, &mmax, dc, x, &initial));
     PetscCall(mma(&test, &mmax, dc, x, &initial));
-
     PetscCall(computeChange(&mmax, x, &change));
 
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "loop: %d\n", loop));
