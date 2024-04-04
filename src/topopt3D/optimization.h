@@ -14,16 +14,18 @@
 
 #define mmas 0.85
 #define mmas0 0.15
+#define artificial 1
 
 typedef struct mma_text {
   Vec mmaL, mmaU, mmaLlast, mmaUlast, alpha, beta, xlast, xllast, xlllast, lbd,
-      ubd, xsign;
+      ubd, xsign, dgT;
+  PetscScalar z;
 } MMAx;
 
 PetscErrorCode mmaInit(PCCtx *s_ctx, MMAx *mma_text);
 PetscErrorCode mmaFinal(MMAx *mma_text);
-PetscErrorCode adjointGradient(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
-                               PetscInt penal);
+PetscErrorCode adjointGradient(PCCtx *s_ctx, MMAx *mma_text, Mat A, Vec x,
+                               Vec t, Vec dc, PetscInt penal);
 PetscErrorCode adjointGradient1(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
                                 PetscInt penal);
 

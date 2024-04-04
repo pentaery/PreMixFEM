@@ -1,5 +1,5 @@
 #include "PreMixFEM_3D.h"
-#include "optimization.h"
+#include "system.h"
 #include <petscdm.h>
 #include <petscdmda.h>
 #include <petscdmdatypes.h>

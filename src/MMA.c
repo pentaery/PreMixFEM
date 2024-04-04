@@ -51,9 +51,10 @@ int main(int argc, char **argv) {
   PetscCall(KSPSetFromOptions(ksp));
   //   PetscCall(KSPSetUp(ksp));
   PetscCall(VecSet(x, volfrac));
+  mmax.z = test.M * test.N * test.P;
   PetscCall(formBoundary(&test));
   while (change > 1e-4) {
-    if (loop <= 50) {
+    if (loop <= 45) {
       penal = 1;
     } else if (loop <= 55) {
       penal = 2;
@@ -64,6 +65,7 @@ int main(int argc, char **argv) {
       break;
     }
     loop += 1;
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "loop: %d\n", loop));
 
     PetscCall(VecSum(x, &xvolfrac));
     xvolfrac /= test.M * test.N * test.P;
@@ -71,12 +73,12 @@ int main(int argc, char **argv) {
     PetscCall(VecMax(x, NULL, &xvolfrac));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "xmax: %f\n", xvolfrac));
 
-    // PetscViewer viewer;
-    // sprintf(str, "../data/output/change%04d.vtr", loop);
-    // PetscCall(
-    //     PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
-    // PetscCall(VecView(x, viewer));
-    // PetscCall(PetscViewerDestroy(&viewer));
+    PetscViewer viewer;
+    sprintf(str, "../data/output/change%04d.vtr", loop);
+    PetscCall(
+        PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
+    PetscCall(VecView(x, viewer));
+    PetscCall(PetscViewerDestroy(&viewer));
 
     PetscCall(formkappa(&test, x, penal));
     PetscCall(formMatrix(&test, A));
@@ -94,21 +96,22 @@ int main(int argc, char **argv) {
 
     PetscCall(computeCostMMA(&test, t, &cost));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
-    PetscCall(adjointGradient(&test, A, x, t, dc, penal));
+    PetscCall(VecSet(dc, 0));
+    PetscCall(adjointGradient(&test, &mmax, A, x, t, dc, penal));
 
-    // PetscCall(VecMax(dc, NULL, &maxdc));
-    // PetscCall(VecMin(dc, NULL, &mindc));
-    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "maxdc: %f\n", maxdc));
-    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "mindc: %f\n", mindc));
+    PetscCall(VecMax(dc, NULL, &maxdc));
+    PetscCall(VecMin(dc, NULL, &mindc));
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "maxdc: %.12f\n", maxdc));
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "mindc: %.12f\n", mindc));
 
     PetscCall(formLimit(&test, &mmax, loop));
 
     // PetscCall(mmatest(&test, &mmax, dc, x, &initial));
-    PetscCall(mma(&test, &mmax, dc, x, &initial));
+    // PetscCall(mma(&test, &mmax, dc, x, &initial));
+    PetscCall(mma1(&test, &mmax, dc, x, &initial));
     PetscCall(computeChange(&mmax, x, &change));
-
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "loop: %d\n", loop));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));
+    PetscPrintf(PETSC_COMM_WORLD, "z: %f\n", mmax.z);
   }
 
   PetscCall(MatDestroy(&A));
