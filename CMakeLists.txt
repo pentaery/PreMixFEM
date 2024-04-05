@@ -55,6 +55,7 @@ set(SOURCES
  src/topopt3D/optimization.c
  src/topopt3D/system.c
  src/topopt3D/oCriteria.c
+ src/topopt3D/MMA.cc
 )
 SET(OUTPUT_NAME test)
 add_executable(${OUTPUT_NAME} ${SOURCES})

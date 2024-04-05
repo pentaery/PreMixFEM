@@ -763,7 +763,7 @@ PetscErrorCode mmatest(PCCtx *s_ctx, MMAx *mma_text, Vec dc, Vec x,
                        PetscScalar *initial) {
   PetscFunctionBeginUser;
   PetscScalar y = 0, derivative = 0, derivative1 = 0, value = 0, dpartial = 0;
-  for (y = 0; y < 0.0001; y += 0.000001) {
+  for (y = 0; y < 100; y += 1) {
     PetscCall(findX(s_ctx, y, mma_text, dc, x));
     PetscCall(
         computeDerivative(s_ctx, y, &derivative, &dpartial, mma_text, dc, x));

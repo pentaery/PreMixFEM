@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
 
     PetscCall(formLimit(&test, &mmax, loop));
 
-    // PetscCall(mmatest(&test, &mmax, dc, x, &initial));
+    PetscCall(mmatest(&test, &mmax, dc, x, &initial));
     PetscCall(mma(&test, &mmax, dc, x, &initial));
     PetscCall(computeChange(&mmax, x, &change));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));
