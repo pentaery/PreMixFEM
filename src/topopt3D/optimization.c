@@ -446,9 +446,9 @@ PetscErrorCode adjointGradient1(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
 PetscErrorCode mma(PCCtx *s_ctx, MMAx *mma_text, Vec dc, Vec x,
                    PetscScalar *initial) {
   PetscFunctionBeginUser;
-  PetscScalar yL = 0.0, yU = 1000000.0;
-  PetscScalar derivative = 2, y = *initial, wy, dpartial;
-  while (derivative > 1 || derivative < -1) {
+  PetscScalar yL = 0.0, yU = 1.0;
+  PetscScalar derivative = 10, y = *initial, wy, dpartial;
+  while (derivative > 5 || derivative < -5 || yU - yL > 1e-10) {
     y = (yL + yU) / 2;
     PetscCall(findX(s_ctx, y, mma_text, dc, x));
     PetscCall(
@@ -459,7 +459,9 @@ PetscErrorCode mma(PCCtx *s_ctx, MMAx *mma_text, Vec dc, Vec x,
       yU = y;
     }
   }
-  y = (yL + yU) / 2;
+  // y += 1e-5;
+  // PetscCall(findX(s_ctx, y, mma_text, dc, x));
+
   PetscCall(
       computeDerivative(s_ctx, y, &derivative, &dpartial, mma_text, dc, x));
   PetscCall(PetscPrintf(PETSC_COMM_WORLD, "derivative: %f\n", derivative));
@@ -474,11 +476,11 @@ PetscErrorCode mma(PCCtx *s_ctx, MMAx *mma_text, Vec dc, Vec x,
 PetscErrorCode mma1(PCCtx *s_ctx, MMAx *mma_text, Vec dc, Vec x,
                     PetscScalar *initial) {
   PetscFunctionBeginUser;
-  PetscScalar y = 1, ytry = 0, derivative = 0, wy = 0, wynew = 0, dpartial = 0,
+  PetscScalar y = 1, ytry = 1, derivative = 0, wy = 0, wynew = 0, dpartial = 0,
               step = 1;
   y = *initial;
   while (ytry - y > 1e-12 || ytry - y > 1e-12) {
-    step = 1;
+    step = 0.5;
     while (step > 1e-12) {
       PetscCall(findX(s_ctx, y, mma_text, dc, x));
       PetscCall(computeWy(s_ctx, y, &wy, mma_text, dc, x));
@@ -489,17 +491,20 @@ PetscErrorCode mma1(PCCtx *s_ctx, MMAx *mma_text, Vec dc, Vec x,
       } else {
         ytry = y - step;
       }
+      PetscCall(findX(s_ctx, ytry, mma_text, dc, x));
       PetscCall(computeWy(s_ctx, ytry, &wynew, mma_text, dc, x));
       if (wynew > wy + 1e-3 * (wynew - wy)) {
         break;
       }
       step /= 2;
     }
+
     y = ytry;
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "ytry: %f\n", y));
   }
   *initial = y;
 
-  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "y: %f\n", y));
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "y: %.12f\n", y));
 
   PetscFunctionReturn(0);
 }
@@ -508,7 +513,7 @@ PetscErrorCode mma2(PCCtx *s_ctx, MMAx *mma_text, Vec dc, Vec x,
                     PetscScalar *initial) {
   PetscFunctionBeginUser;
   PetscScalar y = 0, wy = 0, wylast = -100000;
-  for (y = 0; y < 0.2; y += 1e-6) {
+  for (y = 0; y < 0.2; y += 1e-7) {
     PetscCall(computeWy(s_ctx, y, &wy, mma_text, dc, x));
     if (wy < wylast) {
       break;
@@ -579,8 +584,8 @@ PetscErrorCode computeDerivative(PCCtx *s_ctx, PetscScalar y,
   PetscCall(VecSum(Derivative, derivative));
   PetscCall(VecSum(dsign, dpartial));
   *derivative -= s_ctx->M * s_ctx->N * s_ctx->P * volfrac;
-  // *derivative += *dpartial;
-  *derivative -= mma_text->z;
+  *derivative += *dpartial;
+  // *derivative -= mma_text->z;
 
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, mma_text->xsign, &arraysign));
   PetscCall(VecDestroy(&Derivative));
@@ -612,11 +617,11 @@ PetscErrorCode findX(PCCtx *s_ctx, PetscScalar y, MMAx *mma_text, Vec dc,
   PetscCall(VecSet(mma_text->xsign, 0));
   PetscCall(DMDAVecGetArray(s_ctx->dm, mma_text->xsign, &arraysign));
 
-  if (y < artificial) {
-    mma_text->z = 0;
-  } else {
-    mma_text->z = y - artificial;
-  }
+  // if (y < artificial) {
+  //   mma_text->z = 0;
+  // } else {
+  //   mma_text->z = y - artificial;
+  // }
 
   for (ez = startz; ez < startz + nz; ++ez) {
     for (ey = starty; ey < starty + ny; ++ey) {
@@ -758,7 +763,7 @@ PetscErrorCode mmatest(PCCtx *s_ctx, MMAx *mma_text, Vec dc, Vec x,
                        PetscScalar *initial) {
   PetscFunctionBeginUser;
   PetscScalar y = 0, derivative = 0, derivative1 = 0, value = 0, dpartial = 0;
-  for (y = 0; y < 0.05; y += 0.001) {
+  for (y = 0; y < 0.0001; y += 0.000001) {
     PetscCall(findX(s_ctx, y, mma_text, dc, x));
     PetscCall(
         computeDerivative(s_ctx, y, &derivative, &dpartial, mma_text, dc, x));

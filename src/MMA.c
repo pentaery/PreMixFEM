@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
   Mat A;
   Vec rhs, t, x, dc;
   KSP ksp;
-  PetscInt loop = 0, iter = 0, penal = 3;
+  PetscInt loop = 0, iter = 0, penal = 1;
   PetscScalar change = 1, tau = 0, initial = 0, maxdc = 0, mindc = 0,
               xvolfrac = 0;
 
@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
     } else {
       penal = 3;
     }
-    if (loop == 60) {
+    if (loop ==60) {
       break;
     }
     loop += 1;
@@ -73,12 +73,12 @@ int main(int argc, char **argv) {
     PetscCall(VecMax(x, NULL, &xvolfrac));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "xmax: %f\n", xvolfrac));
 
-    PetscViewer viewer;
-    sprintf(str, "../data/output/change%04d.vtr", loop);
-    PetscCall(
-        PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
-    PetscCall(VecView(x, viewer));
-    PetscCall(PetscViewerDestroy(&viewer));
+    // PetscViewer viewer;
+    // sprintf(str, "../data/output/change%04d.vtr", loop);
+    // PetscCall(
+    //     PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
+    // PetscCall(VecView(x, viewer));
+    // PetscCall(PetscViewerDestroy(&viewer));
 
     PetscCall(formkappa(&test, x, penal));
     PetscCall(formMatrix(&test, A));
@@ -99,19 +99,17 @@ int main(int argc, char **argv) {
     PetscCall(VecSet(dc, 0));
     PetscCall(adjointGradient(&test, &mmax, A, x, t, dc, penal));
 
-    PetscCall(VecMax(dc, NULL, &maxdc));
-    PetscCall(VecMin(dc, NULL, &mindc));
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "maxdc: %.12f\n", maxdc));
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "mindc: %.12f\n", mindc));
+    // PetscCall(VecMax(dc, NULL, &maxdc));
+    // PetscCall(VecMin(dc, NULL, &mindc));
+    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "maxdc: %.12f\n", maxdc));
+    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "mindc: %.12f\n", mindc));
 
     PetscCall(formLimit(&test, &mmax, loop));
 
     // PetscCall(mmatest(&test, &mmax, dc, x, &initial));
-    // PetscCall(mma(&test, &mmax, dc, x, &initial));
-    PetscCall(mma1(&test, &mmax, dc, x, &initial));
+    PetscCall(mma(&test, &mmax, dc, x, &initial));
     PetscCall(computeChange(&mmax, x, &change));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));
-    PetscPrintf(PETSC_COMM_WORLD, "z: %f\n", mmax.z);
   }
 
   PetscCall(MatDestroy(&A));
