@@ -54,14 +54,14 @@ int main(int argc, char **argv) {
   mmax.z = test.M * test.N * test.P;
   PetscCall(formBoundary(&test));
   while (change > 1e-4) {
-    if (loop <= 45) {
+    if (loop <= 50) {
       penal = 1;
     } else if (loop <= 55) {
       penal = 2;
     } else {
       penal = 3;
     }
-    if (loop ==60) {
+    if (loop == 60) {
       break;
     }
     loop += 1;
@@ -73,12 +73,12 @@ int main(int argc, char **argv) {
     PetscCall(VecMax(x, NULL, &xvolfrac));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "xmax: %f\n", xvolfrac));
 
-    // PetscViewer viewer;
-    // sprintf(str, "../data/output/change%04d.vtr", loop);
-    // PetscCall(
-    //     PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
-    // PetscCall(VecView(x, viewer));
-    // PetscCall(PetscViewerDestroy(&viewer));
+    PetscViewer viewer;
+    sprintf(str, "../data/output/change%04d.vtr", loop);
+    PetscCall(
+        PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
+    PetscCall(VecView(x, viewer));
+    PetscCall(PetscViewerDestroy(&viewer));
 
     PetscCall(formkappa(&test, x, penal));
     PetscCall(formMatrix(&test, A));
@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
 
     PetscCall(formLimit(&test, &mmax, loop));
 
-    PetscCall(mmatest(&test, &mmax, dc, x, &initial));
+    // PetscCall(mmatest(&test, &mmax, dc, x, &initial));
     PetscCall(mma(&test, &mmax, dc, x, &initial));
     PetscCall(computeChange(&mmax, x, &change));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));

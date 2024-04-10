@@ -32,6 +32,9 @@ PetscErrorCode mmaInit(PCCtx *s_ctx, MMAx *mma_text) {
   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->ubd));
   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->xsign));
   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->dgT));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->zzz1));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->zzz2));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->zzz));
   PetscCall(VecSet(mma_text->dgT, 1.0 / s_ctx->M / s_ctx->N / s_ctx->P));
   PetscCall(VecSet(mma_text->xlast, volfrac));
   PetscCall(VecSet(mma_text->lbd, 0));
@@ -113,13 +116,22 @@ PetscErrorCode formLimit(PCCtx *s_ctx, MMAx *mma_text, PetscInt loop) {
             arrayU[ez][ey][ex] =
                 arrayxlast[ez][ey][ex] +
                 (arrayUlast[ez][ey][ex] - arrayxllast[ez][ey][ex]) * mmas;
-          } else {
+          } else if ((arrayxlast[ez][ey][ex] - arrayxllast[ez][ey][ex]) *
+                         (arrayxllast[ez][ey][ex] - arrayxlllast[ez][ey][ex]) >
+                     0) {
             arrayL[ez][ey][ex] =
                 arrayxlast[ez][ey][ex] -
                 (arrayxllast[ez][ey][ex] - arrayLlast[ez][ey][ex]) / mmas;
             arrayU[ez][ey][ex] =
                 arrayxlast[ez][ey][ex] +
                 (arrayUlast[ez][ey][ex] - arrayxllast[ez][ey][ex]) / mmas;
+          } else {
+            arrayL[ez][ey][ex] =
+                arrayxlast[ez][ey][ex] -
+                (arrayxllast[ez][ey][ex] - arrayLlast[ez][ey][ex]);
+            arrayU[ez][ey][ex] =
+                arrayxlast[ez][ey][ex] +
+                (arrayUlast[ez][ey][ex] - arrayxllast[ez][ey][ex]);
           }
         }
       }

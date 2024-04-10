@@ -18,7 +18,8 @@
 
 typedef struct mma_text {
   Vec mmaL, mmaU, mmaLlast, mmaUlast, alpha, beta, xlast, xllast, xlllast, lbd,
-      ubd, xsign, dgT;
+      ubd, xsign, dgT, zzz1, zzz2, zzz;
+  ;
   PetscScalar z;
 } MMAx;
 
