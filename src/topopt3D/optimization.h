@@ -15,12 +15,22 @@
 #define mmas 0.85
 #define mmas0 0.15
 #define artificial 1
+#define m 1
 
 typedef struct mma_text {
   Vec mmaL, mmaU, mmaLlast, mmaUlast, alpha, beta, xlast, xllast, xlllast, lbd,
       ubd, xsign, dgT, zzz1, zzz2, zzz;
-  ;
+  Vec p0, q0, p[m], q[m], b[m];
+  PetscScalar bval[m];
+  PetscScalar y[m];
   PetscScalar z;
+  PetscScalar lam[m];
+  Vec xsi, eta;
+  PetscScalar mu[m];
+  PetscScalar zet;
+  PetscScalar s[m];
+
+  PetscScalar c[m], d[m], a[m], a0;
 } MMAx;
 
 PetscErrorCode mmaInit(PCCtx *s_ctx, MMAx *mma_text);
