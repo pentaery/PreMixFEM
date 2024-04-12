@@ -22,14 +22,14 @@ typedef struct mma_text {
       ubd, xsign, dgT, zzz1, zzz2, zzz;
   Vec p0, q0, p[m], q[m], b[m];
   PetscScalar bval[m];
-  PetscScalar y[m];
-  PetscScalar z;
-  PetscScalar lam[m];
-  Vec xsi, eta;
-  PetscScalar mu[m];
-  PetscScalar zet;
-  PetscScalar s[m];
-
+  Vec rex;
+  PetscScalar y[m], rey[m];
+  PetscScalar z, rez;
+  PetscScalar lam[m], relam[m];
+  Vec xsi, eta, rexsi, reeta;
+  PetscScalar mu[m], remu[m];
+  PetscScalar zet, rezet;
+  PetscScalar s[m], res[m];
   PetscScalar c[m], d[m], a[m], a0;
 } MMAx;
 

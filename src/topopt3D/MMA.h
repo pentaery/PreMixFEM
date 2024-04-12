@@ -21,3 +21,4 @@ PetscErrorCode mmaLimit(PCCtx *s_ctx, MMAx *mmax, Vec x, Vec t,
                         PetscInt penal);
 PetscErrorCode mmaSub(PCCtx *s_ctx, MMAx *mmax, Vec x, Vec t, Vec dc);
 PetscErrorCode subSolv(PCCtx *s_ctx, MMAx *mmax, Vec x, Vec t);
+PetscErrorCode computeResidual(PCCtx *s_ctx, MMAx *mmax, Vec x);

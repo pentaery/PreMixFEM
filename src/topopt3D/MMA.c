@@ -243,8 +243,30 @@ PetscErrorCode subSolv(PCCtx *s_ctx, MMAx *mmax, Vec x, Vec t) {
   PetscInt itera = 0;
   PetscScalar epsi = 1;
   while (epsi > epsimin) {
-    
   }
 
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode computeResidual(PCCtx *s_ctx, MMAx *mmax, Vec x) {
+  PetscFunctionBeginUser;
+  PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
+  PetscScalar ***arrayx, ***arrayrex, ***arrayxsi, ***arrayeta, ***arrayU,
+      ***arrayL;
+  PetscCall(
+      DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
+  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mmax->xsi, &arrayxsi));
+  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mmax->eta, &arrayeta));
+  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, x, &arrayx));
+  PetscCall(DMDAVecGetArray(s_ctx->dm, mmax->rex, &arrayrex));
+  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mmax->mmaL, &arrayL));
+  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mmax->mmaU, &arrayU));
+  for (ez = startz; ez < startz + nz; ++ez) {
+    for (ey = starty; ey < starty + ny; ++ey) {
+      for (ex = startx; ex < startx + nx; ++ex) {
+      }
+    }
+  }
+  PetscCall(DMDAVecRestoreArray(s_ctx->dm, mmax->rex, &arrayrex));
   PetscFunctionReturn(0);
 }
