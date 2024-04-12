@@ -204,7 +204,18 @@ PetscErrorCode mmaSub(PCCtx *s_ctx, MMAx *mmax, Vec x, Vec t, Vec dc) {
   }
   PetscFunctionReturn(0);
 }
+
 PetscErrorCode subSolv(PCCtx *s_ctx, MMAx *mmax, Vec x, Vec t) {
+  PetscFunctionBeginUser;
+  PetscCall(omegaInitial(s_ctx, mmax, x));
+  PetscInt itera = 0;
+  PetscScalar epsi = 1;
+  while (epsi > epsimin) {
+  }
+
+  PetscFunctionReturn(0);
+}
+PetscErrorCode omegaInitial(PCCtx *s_ctx, MMAx *mmax, Vec x) {
   PetscFunctionBeginUser;
   PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez, i;
   PetscScalar ***arrayeta, ***arrayxsi, ***arrayx, ***arrayalpha, ***arraybeta;
@@ -239,12 +250,6 @@ PetscErrorCode subSolv(PCCtx *s_ctx, MMAx *mmax, Vec x, Vec t) {
     mmax->s[i] = 1;
     mmax->mu[i] = PetscMax(1, mmax->c[i] / 2);
   }
-  // Finishing Initialization
-  PetscInt itera = 0;
-  PetscScalar epsi = 1;
-  while (epsi > epsimin) {
-  }
-
   PetscFunctionReturn(0);
 }
 
