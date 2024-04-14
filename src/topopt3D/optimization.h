@@ -26,7 +26,7 @@ typedef struct mma_text {
   PetscScalar y[m], rey[m];
   PetscScalar z, rez;
   PetscScalar lam[m], relam[m];
-  Vec xsi, eta, rexsi, reeta;
+  Vec xsi, eta, rexsi, reeta, gvec[m];
   PetscScalar mu[m], remu[m];
   PetscScalar zet, rezet;
   PetscScalar s[m], res[m];

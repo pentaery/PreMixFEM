@@ -21,4 +21,8 @@ PetscErrorCode mmaLimit(PCCtx *s_ctx, MMAx *mmax, Vec x, Vec t, PetscInt penal);
 PetscErrorCode mmaSub(PCCtx *s_ctx, MMAx *mmax, Vec x, Vec t, Vec dc);
 PetscErrorCode subSolv(PCCtx *s_ctx, MMAx *mmax, Vec x, Vec t);
 PetscErrorCode omegaInitial(PCCtx *s_ctx, MMAx *mmax, Vec x);
-PetscErrorCode computeResidual(PCCtx *s_ctx, MMAx *mmax, Vec x);
+PetscErrorCode computeResidual(PCCtx *s_ctx, MMAx *mmax, Vec x,
+                               PetscScalar epsi, PetscScalar *residumax,
+                               PetscScalar *residunorm);
+PetscErrorCode computeDelta(PCCtx *s_ctx, MMAx *mmax, Vec x, PetscScalar epsi);
+PetscErrorCode findStep(PCCtx *s_ctx, MMAx *mmax, Vec x);
