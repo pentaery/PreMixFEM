@@ -20,17 +20,18 @@
 typedef struct mma_text {
   Vec mmaL, mmaU, mmaLlast, mmaUlast, alpha, beta, xlast, xllast, xlllast, lbd,
       ubd, xsign, dgT, zzz1, zzz2, zzz;
-  Vec p0, q0, p[m], q[m], b[m];
+  Vec p0, q0, p[m], q[m], b[m], g[m];
   PetscScalar bval[m];
-  Vec rex;
-  PetscScalar y[m], rey[m];
-  PetscScalar z, rez;
-  PetscScalar lam[m], relam[m];
-  Vec xsi, eta, rexsi, reeta, gvec[m];
-  PetscScalar mu[m], remu[m];
-  PetscScalar zet, rezet;
-  PetscScalar s[m], res[m];
+  Vec rex, dx, delx, diagx;
+  PetscScalar y[m], rey[m], dy[m], dely[m];
+  PetscScalar z, rez, dz, delz;
+  PetscScalar lam[m], relam[m], dlam[m];
+  Vec xsi, eta, rexsi, reeta, gvec[m], dxsi, deta;
+  PetscScalar mu[m], remu[m], dmu[m];
+  PetscScalar zet, rezet, dzet;
+  PetscScalar s[m], res[m], ds[m];
   PetscScalar c[m], d[m], a[m], a0;
+  Vec temp, temp1, temp2, temp3;
 } MMAx;
 
 PetscErrorCode mmaInit(PCCtx *s_ctx, MMAx *mma_text);
