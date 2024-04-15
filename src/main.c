@@ -1,3 +1,4 @@
+#include "MMA.h"
 #include "PreMixFEM_3D.h"
 #include "oCriteria.h"
 #include "optimization.h"
@@ -30,8 +31,7 @@ int main(int argc, char **argv) {
   Vec rhs, t, x, dc;
   KSP ksp;
   PetscInt loop = 0, iter = 0, penal = 1;
-  PetscScalar change = 1, tau = 0, initial = 0, maxdc = 0, mindc = 0,
-              xvolfrac = 0;
+  PetscScalar change = 1, tau = 0, initial = 0, xvolfrac = 0;
 
   char str[80];
 
@@ -73,12 +73,12 @@ int main(int argc, char **argv) {
     PetscCall(VecMax(x, NULL, &xvolfrac));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "xmax: %f\n", xvolfrac));
 
-    PetscViewer viewer;
-    sprintf(str, "../data/output/change%04d.vtr", loop);
-    PetscCall(
-        PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
-    PetscCall(VecView(x, viewer));
-    PetscCall(PetscViewerDestroy(&viewer));
+    // PetscViewer viewer;
+    // sprintf(str, "../data/output/change%04d.vtr", loop);
+    // PetscCall(
+    //     PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
+    // PetscCall(VecView(x, viewer));
+    // PetscCall(PetscViewerDestroy(&viewer));
 
     PetscCall(formkappa(&test, x, penal));
     PetscCall(formMatrix(&test, A));
@@ -104,10 +104,9 @@ int main(int argc, char **argv) {
     // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "maxdc: %.12f\n", maxdc));
     // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "mindc: %.12f\n", mindc));
 
-    PetscCall(formLimit(&test, &mmax, loop));
-
-    // PetscCall(mmatest(&test, &mmax, dc, x, &initial));
-    PetscCall(mma(&test, &mmax, dc, x, &initial));
+    PetscCall(mmaLimit(&test, &mmax, x, t, penal));
+    PetscCall(mmaSub(&test, &mmax, x, t, dc));
+    PetscCall(subSolv(&test, &mmax, x, t));
     PetscCall(computeChange(&mmax, x, &change));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));
   }

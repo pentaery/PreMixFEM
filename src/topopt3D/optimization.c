@@ -17,48 +17,48 @@
 #include <petscvec.h>
 #include <petscviewer.h>
 
-PetscErrorCode mmaInit(PCCtx *s_ctx, MMAx *mma_text) {
-  PetscFunctionBeginUser;
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->mmaL));
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->mmaU));
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->xlast));
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->xllast));
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->xlllast));
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->mmaLlast));
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->mmaUlast));
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->alpha));
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->beta));
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->lbd));
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->ubd));
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->xsign));
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->dgT));
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->zzz1));
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->zzz2));
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->zzz));
-  PetscCall(VecSet(mma_text->dgT, 1.0 / s_ctx->M / s_ctx->N / s_ctx->P));
-  PetscCall(VecSet(mma_text->xlast, volfrac));
-  PetscCall(VecSet(mma_text->lbd, 0));
-  PetscCall(VecSet(mma_text->ubd, 1));
-  PetscFunctionReturn(0);
-}
+// PetscErrorCode mmaInit(PCCtx *s_ctx, MMAx *mma_text) {
+//   PetscFunctionBeginUser;
+//   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->mmaL));
+//   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->mmaU));
+//   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->xlast));
+//   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->xllast));
+//   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->xlllast));
+//   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->mmaLlast));
+//   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->mmaUlast));
+//   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->alpha));
+//   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->beta));
+//   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->lbd));
+//   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->ubd));
+//   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->xsign));
+//   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->dgT));
+//   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->zzz1));
+//   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->zzz2));
+//   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->zzz));
+//   PetscCall(VecSet(mma_text->dgT, 1.0 / s_ctx->M / s_ctx->N / s_ctx->P));
+//   PetscCall(VecSet(mma_text->xlast, volfrac));
+//   PetscCall(VecSet(mma_text->lbd, 0));
+//   PetscCall(VecSet(mma_text->ubd, 1));
+//   PetscFunctionReturn(0);
+// }
 
-PetscErrorCode mmaFinal(MMAx *mma_text) {
-  PetscFunctionBeginUser;
-  PetscCall(VecDestroy(&mma_text->mmaL));
-  PetscCall(VecDestroy(&mma_text->mmaU));
-  PetscCall(VecDestroy(&mma_text->xlast));
-  PetscCall(VecDestroy(&mma_text->xllast));
-  PetscCall(VecDestroy(&mma_text->xlllast));
-  PetscCall(VecDestroy(&mma_text->mmaLlast));
-  PetscCall(VecDestroy(&mma_text->mmaUlast));
-  PetscCall(VecDestroy(&mma_text->alpha));
-  PetscCall(VecDestroy(&mma_text->beta));
-  PetscCall(VecDestroy(&mma_text->lbd));
-  PetscCall(VecDestroy(&mma_text->ubd));
-  PetscCall(VecDestroy(&mma_text->xsign));
-  PetscCall(VecDestroy(&mma_text->dgT));
-  PetscFunctionReturn(0);
-}
+// PetscErrorCode mmaFinal(MMAx *mma_text) {
+//   PetscFunctionBeginUser;
+//   PetscCall(VecDestroy(&mma_text->mmaL));
+//   PetscCall(VecDestroy(&mma_text->mmaU));
+//   PetscCall(VecDestroy(&mma_text->xlast));
+//   PetscCall(VecDestroy(&mma_text->xllast));
+//   PetscCall(VecDestroy(&mma_text->xlllast));
+//   PetscCall(VecDestroy(&mma_text->mmaLlast));
+//   PetscCall(VecDestroy(&mma_text->mmaUlast));
+//   PetscCall(VecDestroy(&mma_text->alpha));
+//   PetscCall(VecDestroy(&mma_text->beta));
+//   PetscCall(VecDestroy(&mma_text->lbd));
+//   PetscCall(VecDestroy(&mma_text->ubd));
+//   PetscCall(VecDestroy(&mma_text->xsign));
+//   PetscCall(VecDestroy(&mma_text->dgT));
+//   PetscFunctionReturn(0);
+// }
 
 PetscErrorCode computeChange(MMAx *mma_text, Vec x, PetscScalar *change) {
   PetscFunctionBeginUser;

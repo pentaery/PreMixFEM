@@ -31,9 +31,32 @@ PetscErrorCode mmaInit(PCCtx *s_ctx, MMAx *mma_text) {
   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->dgT));
   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->p0));
   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->q0));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->eta));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->reeta));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->deta));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->xsi));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->rexsi));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->dxsi));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->rex));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->dx));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->delx));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->diagx));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->rexsi));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->reeta));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->zzz1));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->zzz2));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->zzz));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->temp));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->temp1));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->temp2));
+  PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->temp3));
+
   for (i = 0; i < m; i++) {
     PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->p[i]));
     PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->q[i]));
+    PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->gvec[i]));
+    PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->b[i]));
+    PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->g[i]));
     mma_text->a[i] = 0;
     mma_text->d[i] = 1;
     mma_text->c[i] = 1000;
@@ -48,6 +71,7 @@ PetscErrorCode mmaInit(PCCtx *s_ctx, MMAx *mma_text) {
 
 PetscErrorCode mmaFinal(MMAx *mma_text) {
   PetscFunctionBeginUser;
+  PetscInt i = 0;
   PetscCall(VecDestroy(&mma_text->mmaL));
   PetscCall(VecDestroy(&mma_text->mmaU));
   PetscCall(VecDestroy(&mma_text->xlast));
@@ -61,6 +85,35 @@ PetscErrorCode mmaFinal(MMAx *mma_text) {
   PetscCall(VecDestroy(&mma_text->ubd));
   PetscCall(VecDestroy(&mma_text->xsign));
   PetscCall(VecDestroy(&mma_text->dgT));
+  PetscCall(VecDestroy(&mma_text->p0));
+  PetscCall(VecDestroy(&mma_text->q0));
+  PetscCall(VecDestroy(&mma_text->eta));
+  PetscCall(VecDestroy(&mma_text->reeta));
+  PetscCall(VecDestroy(&mma_text->deta));
+  PetscCall(VecDestroy(&mma_text->xsi));
+  PetscCall(VecDestroy(&mma_text->rexsi));
+  PetscCall(VecDestroy(&mma_text->dxsi));
+  PetscCall(VecDestroy(&mma_text->rex));
+  PetscCall(VecDestroy(&mma_text->dx));
+  PetscCall(VecDestroy(&mma_text->delx));
+  PetscCall(VecDestroy(&mma_text->diagx));
+  PetscCall(VecDestroy(&mma_text->rexsi));
+  PetscCall(VecDestroy(&mma_text->reeta));
+  PetscCall(VecDestroy(&mma_text->zzz1));
+  PetscCall(VecDestroy(&mma_text->zzz2));
+  PetscCall(VecDestroy(&mma_text->zzz));
+  PetscCall(VecDestroy(&mma_text->temp));
+  PetscCall(VecDestroy(&mma_text->temp1));
+  PetscCall(VecDestroy(&mma_text->temp2));
+  PetscCall(VecDestroy(&mma_text->temp3));
+
+  for (i = 0; i < m; i++) {
+    PetscCall(VecDestroy(&mma_text->p[i]));
+    PetscCall(VecDestroy(&mma_text->q[i]));
+    PetscCall(VecDestroy(&mma_text->gvec[i]));
+    PetscCall(VecDestroy(&mma_text->b[i]));
+    PetscCall(VecDestroy(&mma_text->g[i]));
+  }
   PetscFunctionReturn(0);
 }
 PetscErrorCode mmaLimit(PCCtx *s_ctx, MMAx *mmax, Vec x, Vec t, PetscInt loop) {
@@ -217,13 +270,14 @@ PetscErrorCode subSolv(PCCtx *s_ctx, MMAx *mmax, Vec x, Vec t) {
       ittt += 1;
       itera += 1;
       PetscCall(computeDelta(s_ctx, mmax, x, epsi));
-      PetscScalar step = 0, resinew = 2 * residunorm;
+      PetscScalar step = 0, resinew;
       PetscCall(findStep(s_ctx, mmax, x, &step));
       PetscInt itto = 0;
       PetscCall(omegaUpdate(mmax, x, step));
+      resinew = 2 * residunorm;
       while (resinew > residunorm && itto < 50) {
         itto += 1;
-        PetscCall(omegaUpdate(mmax, x, PetscPowScalar(-1.0 / 2, itto - 1)));
+        PetscCall(omegaUpdate(mmax, x, -PetscPowScalar(0.5, itto - 1)));
         PetscCall(computeResidual(s_ctx, mmax, x, epsi, &residumax, &resinew));
         step /= 2;
       }
@@ -232,7 +286,6 @@ PetscErrorCode subSolv(PCCtx *s_ctx, MMAx *mmax, Vec x, Vec t) {
     }
     epsi *= 0.1;
   }
-
   PetscFunctionReturn(0);
 }
 PetscErrorCode omegaInitial(PCCtx *s_ctx, MMAx *mmax, Vec x) {
@@ -538,7 +591,7 @@ PetscErrorCode computeDelta(PCCtx *s_ctx, MMAx *mmax, Vec x, PetscScalar epsi) {
 }
 PetscErrorCode findStep(PCCtx *s_ctx, MMAx *mmax, Vec x, PetscScalar *step) {
   PetscFunctionBeginUser;
-  PetscInt ex, ey, ez, nx, ny, nz, startx, starty, startz, i;
+  PetscInt ex, ey, ez, nx, ny, nz, startx, starty, startz;
   PetscScalar ***arrayx, ***arrayalpha, ***arraybeta, ***arraytemp,
       ***arraytemp1, ***arraytemp2, ***arraytemp3, ***arraydx, ***arrayxsi,
       ***arraydxsi, ***arrayeta, ***arraydeta;

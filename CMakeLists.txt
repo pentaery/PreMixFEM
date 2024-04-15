@@ -50,12 +50,12 @@ endif (CXX_FLAGS)
 project(PreMixFEM)
 set(SOURCES 
  src/PreMixFEM_3D.c
- src/MMA.c
+ src/main.c
 # src/test/functiontest.c
  src/topopt3D/optimization.c
  src/topopt3D/system.c
  src/topopt3D/oCriteria.c
- src/topopt3D/MMA.cc
+ src/topopt3D/MMA.c
 )
 SET(OUTPUT_NAME test)
 add_executable(${OUTPUT_NAME} ${SOURCES})
