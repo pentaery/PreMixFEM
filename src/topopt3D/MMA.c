@@ -132,10 +132,10 @@ PetscErrorCode mmaLimit(PCCtx *s_ctx, MMAx *mmax, Vec x, Vec t, PetscInt loop) {
   PetscCall(
       DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
   if (loop <= 2) {
-    PetscCall(VecWAXPY(mmax->mmaL, -asyinit, mmax->ubd, mmax->xlast));
+    PetscCall(VecWAXPY(mmax->mmaL, -asyinit, mmax->ubd, x));
     PetscCall(VecAXPY(mmax->mmaL, asyinit, mmax->lbd));
-    PetscCall(VecWAXPY(mmax->mmaL, asyinit, mmax->ubd, mmax->xlast));
-    PetscCall(VecAXPY(mmax->mmaL, -asyinit, mmax->lbd));
+    PetscCall(VecWAXPY(mmax->mmaU, asyinit, mmax->ubd, x));
+    PetscCall(VecAXPY(mmax->mmaU, -asyinit, mmax->lbd));
   } else {
     PetscCall(DMDAVecGetArray(s_ctx->dm, mmax->mmaL, &low));
     PetscCall(DMDAVecGetArray(s_ctx->dm, mmax->mmaU, &upp));
@@ -150,7 +150,7 @@ PetscErrorCode mmaLimit(PCCtx *s_ctx, MMAx *mmax, Vec x, Vec t, PetscInt loop) {
 
             upp[ez][ey][ex] = xval[ez][ey][ex] +
                               asyincr * (upp[ez][ey][ex] - xold1[ez][ey][ex]);
-            
+
           } else if (sign < 0) {
             low[ez][ey][ex] = xval[ez][ey][ex] -
                               asydecr * (xold1[ez][ey][ex] - low[ez][ey][ex]);
