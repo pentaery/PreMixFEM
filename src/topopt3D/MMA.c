@@ -150,6 +150,7 @@ PetscErrorCode mmaLimit(PCCtx *s_ctx, MMAx *mmax, Vec x, Vec t, PetscInt loop) {
 
             upp[ez][ey][ex] = xval[ez][ey][ex] +
                               asyincr * (upp[ez][ey][ex] - xold1[ez][ey][ex]);
+            
           } else if (sign < 0) {
             low[ez][ey][ex] = xval[ez][ey][ex] -
                               asydecr * (xold1[ez][ey][ex] - low[ez][ey][ex]);

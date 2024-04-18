@@ -104,9 +104,12 @@ int main(int argc, char **argv) {
     // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "maxdc: %.12f\n", maxdc));
     // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "mindc: %.12f\n", mindc));
 
-    PetscCall(mmaLimit(&test, &mmax, x, t, penal));
-    PetscCall(mmaSub(&test, &mmax, x, t, dc));
-    PetscCall(subSolv(&test, &mmax, x, t));
+    // PetscCall(formLimit(&test, &mmax, loop));
+    // PetscCall(mmaLimit(&test, &mmax, x, t, penal));
+    PetscCall(mma(&test, &mmax, dc, x, &initial));
+
+    // PetscCall(mmaSub(&test, &mmax, x, t, dc));
+    // PetscCall(subSolv(&test, &mmax, x, t));
     PetscCall(computeChange(&mmax, x, &change));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));
   }
