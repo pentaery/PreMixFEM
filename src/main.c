@@ -54,17 +54,20 @@ int main(int argc, char **argv) {
   mmax.z = test.M * test.N * test.P;
   PetscCall(formBoundary(&test));
   while (change > 1e-4) {
-    if (loop <= 50) {
-      penal = 1;
-    } else if (loop <= 55) {
-      penal = 2;
-    } else {
-      penal = 3;
-    }
-    if (loop == 60) {
+    // if (loop <= 50) {
+    //   penal = 1;
+    // } else if (loop <= 55) {
+    //   penal = 2;
+    // } else {
+    //   penal = 3;
+    // }
+    // if (loop == 60) {
+    //   break;
+    // }
+    loop += 1;
+    if (loop == 2) {
       break;
     }
-    loop += 1;
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "loop: %d\n", loop));
 
     PetscCall(VecSum(x, &xvolfrac));
@@ -98,19 +101,14 @@ int main(int argc, char **argv) {
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
     PetscCall(VecSet(dc, 0));
     PetscCall(adjointGradient(&test, &mmax, A, x, t, dc, penal));
-
-    // PetscCall(VecMax(dc, NULL, &maxdc));
-    // PetscCall(VecMin(dc, NULL, &mindc));
-    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "maxdc: %.12f\n", maxdc));
-    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "mindc: %.12f\n", mindc));
+    // PetscCall(VecView(dc, PETSC_VIEWER_STDOUT_WORLD));
 
     // PetscCall(formLimit(&test, &mmax, loop));
     PetscCall(mmaLimit(&test, &mmax, x, t, loop));
-    // PetscCall(VecView(mmax.mmaL, PETSC_VIEWER_STDOUT_WORLD));
     // PetscCall(mma(&test, &mmax, dc, x, &initial));
 
     PetscCall(mmaSub(&test, &mmax, x, t, dc));
-    // PetscCall(subSolv(&test, &mmax, x, t));
+    PetscCall(subSolv(&test, &mmax, x, t));
     PetscCall(computeChange(&mmax, x, &change));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));
   }
