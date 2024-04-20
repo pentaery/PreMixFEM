@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
       KSPSetTolerances(ksp, 1e-6, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT));
   PetscCall(KSPSetFromOptions(ksp));
   //   PetscCall(KSPSetUp(ksp));
-  PetscCall(VecSet(x, volfrac));
+  PetscCall(VecSet(mmax.xlast, volfrac));
   mmax.z = test.M * test.N * test.P;
   PetscCall(formBoundary(&test));
   while (change > 1e-4) {
@@ -108,6 +108,8 @@ int main(int argc, char **argv) {
     // PetscCall(mma(&test, &mmax, dc, x, &initial));
 
     PetscCall(mmaSub(&test, &mmax, x, t, dc));
+    PetscCall(VecView(mmax.beta, PETSC_VIEWER_STDOUT_WORLD));
+    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "b[0]: %f\n", mmax.bval[0]));
     PetscCall(subSolv(&test, &mmax, x, t));
     PetscCall(computeChange(&mmax, x, &change));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));

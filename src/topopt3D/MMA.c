@@ -263,6 +263,7 @@ PetscErrorCode mmaSub(PCCtx *s_ctx, MMAx *mmax, Vec x, Vec t, Vec dc) {
 PetscErrorCode subSolv(PCCtx *s_ctx, MMAx *mmax, Vec x, Vec t) {
   PetscFunctionBeginUser;
   PetscCall(omegaInitial(s_ctx, mmax, x));
+  PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
   PetscInt itera = 0;
   PetscScalar epsi = 1, residumax, residunorm;
   while (epsi > epsimin) {
