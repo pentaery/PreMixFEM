@@ -17,9 +17,9 @@
 #define epsimin 1e-7
 PetscErrorCode mmaInit(PCCtx *s_ctx, MMAx *mma_text);
 PetscErrorCode mmaFinal(MMAx *mma_text);
-PetscErrorCode mmaLimit(PCCtx *s_ctx, MMAx *mmax, Vec x, Vec t, PetscInt penal);
-PetscErrorCode mmaSub(PCCtx *s_ctx, MMAx *mmax, Vec x, Vec t, Vec dc);
-PetscErrorCode subSolv(PCCtx *s_ctx, MMAx *mmax, Vec x, Vec t);
+PetscErrorCode mmaLimit(PCCtx *s_ctx, MMAx *mmax, PetscInt penal);
+PetscErrorCode mmaSub(PCCtx *s_ctx, MMAx *mmax, Vec dc);
+PetscErrorCode subSolv(PCCtx *s_ctx, MMAx *mmax, Vec x);
 PetscErrorCode omegaInitial(PCCtx *s_ctx, MMAx *mmax, Vec x);
 PetscErrorCode computeResidual(PCCtx *s_ctx, MMAx *mmax, Vec x,
                                PetscScalar epsi, PetscScalar *residumax,
