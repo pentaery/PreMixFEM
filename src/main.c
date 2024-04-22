@@ -55,20 +55,17 @@ int main(int argc, char **argv) {
   mmax.z = test.M * test.N * test.P;
   PetscCall(formBoundary(&test));
   while (change > 1e-4) {
-    if (loop <= 50) {
-      penal = 1;
-    } else if (loop <= 55) {
-      penal = 2;
-    } else {
-      penal = 3;
-    }
+    // if (loop <= 40) {
+    //   penal = 1;
+    // } else if (loop <= 50) {
+    //   penal = 2;
+    // } else {
+    //   penal = 3;
+    // }
     if (loop == 60) {
       break;
     }
     loop += 1;
-    // if (loop == 2) {
-    //   break;
-    // }
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "loop: %d\n", loop));
 
     PetscCall(VecSum(x, &xvolfrac));
@@ -107,11 +104,10 @@ int main(int argc, char **argv) {
     // PetscCall(formLimit(&test, &mmax, loop));
     PetscCall(mmaLimit(&test, &mmax, loop));
     // PetscCall(mma(&test, &mmax, dc, x, &initial));
-    
     PetscCall(mmaSub(&test, &mmax, dc));
-    // PetscCall(VecView(mmax.q0, PETSC_VIEWER_STDOUT_WORLD));
     // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "b[0]: %f\n", mmax.bval[0]));
     PetscCall(subSolv(&test, &mmax, x));
+    // PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
     PetscCall(computeChange(&mmax, x, &change));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));
   }

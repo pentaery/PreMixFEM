@@ -119,8 +119,8 @@ PetscErrorCode mmaFinal(MMAx *mma_text) {
 PetscErrorCode mmaLimit(PCCtx *s_ctx, MMAx *mmax, PetscInt loop) {
   PetscFunctionBeginUser;
   PetscScalar asyinit = 0.5;
-  PetscScalar asyincr = 1 / 0.85;
-  PetscScalar asydecr = 0.85;
+  PetscScalar asyincr = 1.2;
+  PetscScalar asydecr = 0.7;
   PetscScalar sign = 0;
   PetscScalar albefa = 0.1;
   PetscScalar move = 0.5;
