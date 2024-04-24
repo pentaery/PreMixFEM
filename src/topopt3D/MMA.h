@@ -27,3 +27,4 @@ PetscErrorCode computeResidual(PCCtx *s_ctx, MMAx *mmax, Vec x,
 PetscErrorCode computeDelta(PCCtx *s_ctx, MMAx *mmax, Vec x, PetscScalar epsi);
 PetscErrorCode findStep(PCCtx *s_ctx, MMAx *mmax, Vec x, PetscScalar *step);
 PetscErrorCode omegaUpdate(MMAx *mmax, Vec x, PetscScalar coef);
+PetscErrorCode outputTest(MMAx *mmax);

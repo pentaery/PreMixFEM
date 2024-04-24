@@ -705,3 +705,16 @@ PetscErrorCode omegaUpdate(MMAx *mmax, Vec x, PetscScalar coef) {
   mmax->zet += coef * mmax->dzet;
   PetscFunctionReturn(0);
 }
+PetscErrorCode outputTest(MMAx *mmax) {
+  PetscFunctionBeginUser;
+  PetscViewer viewer;
+  PetscCall(PetscViewerBinaryOpen(PETSC_COMM_WORLD,
+                                  "../src/pymma/data/xval.bin", FILE_MODE_WRITE,
+                                  &viewer));
+  PetscCall(VecView(mmax->xlast, viewer));
+
+  PetscCall(PetscViewerDestroy(&viewer));
+  PetscCall(VecView(mmax->xlast, PETSC_VIEWER_STDOUT_WORLD));
+
+  PetscFunctionReturn(0);
+}
