@@ -346,6 +346,7 @@ def subsolv(m,n,epsimin,low,upp,alfa,beta,p0,q0,P,Q,a0,a,b,c,d):
                 dlam = np.dot(GG,dx)/diaglamyi-dz*(a/diaglamyi)+dellamyi/diaglamyi
                 # End if m<n
             dy = -dely/diagy+dlam/diagy
+            print(dy)
             dxsi = -xsi+epsvecn/(x-alfa)-(xsi*dx)/(x-alfa)
             deta = -eta+epsvecn/(beta-x)+(eta*dx)/(beta-x)
             dmu = -mu+epsvecm/y-(mu*dy)/y

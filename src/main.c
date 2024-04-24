@@ -23,6 +23,7 @@ int main(int argc, char **argv) {
   PCCtx test;
   MMAx mmax;
   PetscInt grid = 20;
+  PetscInt testiter = 1;
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-mesh", &grid, NULL));
   PetscInt mesh[3] = {grid, grid, grid};
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
@@ -98,17 +99,16 @@ int main(int argc, char **argv) {
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
     // PetscCall(VecSet(dc, 0));
     PetscCall(adjointGradient(&test, &mmax, A, mmax.xlast, t, dc, penal));
-    if (loop == 1) {
-      PetscCall(outputTest(&mmax));
-      break;
+    if (loop == testiter) {
+      PetscCall(outputTest(&mmax, dc));
     }
     PetscCall(mmaLimit(&test, &mmax, loop));
-    // PetscCall(mma(&test, &mmax, dc, x, &initial));
     PetscCall(mmaSub(&test, &mmax, dc));
-    // PetscCall(VecView(mmax.mmaL, PETSC_VIEWER_STDOUT_WORLD));
-    // PetscCall(VecView(mmax.mmaU, PETSC_VIEWER_STDOUT_WORLD));
     PetscCall(subSolv(&test, &mmax, x));
-    // PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
+    if (loop == testiter) {
+      // PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
+      break;
+    }
     PetscCall(computeChange(&mmax, x, &change));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));
   }

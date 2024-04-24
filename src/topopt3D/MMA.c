@@ -119,8 +119,8 @@ PetscErrorCode mmaFinal(MMAx *mma_text) {
 PetscErrorCode mmaLimit(PCCtx *s_ctx, MMAx *mmax, PetscInt loop) {
   PetscFunctionBeginUser;
   PetscScalar asyinit = 0.5;
-  PetscScalar asyincr = 1 / 0.85;
-  PetscScalar asydecr = 0.85;
+  PetscScalar asyincr = 1.2;
+  PetscScalar asydecr = 0.7;
   PetscScalar sign = 0;
   PetscScalar albefa = 0.1;
   PetscScalar move = 0.5;
@@ -137,12 +137,12 @@ PetscErrorCode mmaLimit(PCCtx *s_ctx, MMAx *mmax, PetscInt loop) {
   PetscCall(
       DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
   if (loop <= 2) {
-    // PetscCall(VecWAXPY(mmax->mmaL, -asyinit, mmax->ubd, mmax->xlast));
-    // PetscCall(VecAXPY(mmax->mmaL, asyinit, mmax->lbd));
-    // PetscCall(VecWAXPY(mmax->mmaU, asyinit, mmax->ubd, mmax->xlast));
-    // PetscCall(VecAXPY(mmax->mmaU, -asyinit, mmax->lbd));
-    PetscCall(VecSet(mmax->mmaL, -0.15));
-    PetscCall(VecSet(mmax->mmaU, 0.15));
+    PetscCall(VecWAXPY(mmax->mmaL, -asyinit, mmax->ubd, mmax->xlast));
+    PetscCall(VecAXPY(mmax->mmaL, asyinit, mmax->lbd));
+    PetscCall(VecWAXPY(mmax->mmaU, asyinit, mmax->ubd, mmax->xlast));
+    PetscCall(VecAXPY(mmax->mmaU, -asyinit, mmax->lbd));
+    // PetscCall(VecSet(mmax->mmaL, -0.15));
+    // PetscCall(VecSet(mmax->mmaU, 0.15));
   } else {
     PetscCall(DMDAVecGetArray(s_ctx->dm, mmax->mmaL, &low));
     PetscCall(DMDAVecGetArray(s_ctx->dm, mmax->mmaU, &upp));
@@ -270,24 +270,18 @@ PetscErrorCode mmaSub(PCCtx *s_ctx, MMAx *mmax, Vec dc) {
 PetscErrorCode subSolv(PCCtx *s_ctx, MMAx *mmax, Vec x) {
   PetscFunctionBeginUser;
   PetscCall(omegaInitial(s_ctx, mmax, x));
-  // PetscCall(VecView(mmax->eta, PETSC_VIEWER_STDOUT_WORLD));
   PetscInt itera = 0;
   PetscScalar epsi = 1, residumax, residunorm;
   while (epsi > epsimin) {
     PetscCall(computeResidual(s_ctx, mmax, x, epsi, &residumax, &residunorm));
-    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "residumax %f\n", residumax));
-    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "residunorm %f\n", residunorm));
     PetscInt ittt = 0;
     while (residumax > 0.9 * epsi && ittt < 200) {
       ittt += 1;
       itera += 1;
       PetscCall(computeDelta(s_ctx, mmax, x, epsi));
-      // if (ittt == 2) {
-      //   break;
-      // }
+      PetscPrintf(PETSC_COMM_WORLD, "y %f\n", mmax->y[0]);
       PetscScalar step = 0, resinew;
       PetscCall(findStep(s_ctx, mmax, x, &step));
-      // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "step %f\n", step));
       PetscInt itto = 0;
       PetscCall(omegaUpdate(mmax, x, step));
       resinew = 2 * residunorm;
@@ -705,16 +699,30 @@ PetscErrorCode omegaUpdate(MMAx *mmax, Vec x, PetscScalar coef) {
   mmax->zet += coef * mmax->dzet;
   PetscFunctionReturn(0);
 }
-PetscErrorCode outputTest(MMAx *mmax) {
+PetscErrorCode outputTest(MMAx *mmax, Vec dc) {
   PetscFunctionBeginUser;
   PetscViewer viewer;
   PetscCall(PetscViewerBinaryOpen(PETSC_COMM_WORLD,
                                   "../src/pymma/data/xval.bin", FILE_MODE_WRITE,
                                   &viewer));
   PetscCall(VecView(mmax->xlast, viewer));
-
+  PetscCall(PetscViewerBinaryOpen(PETSC_COMM_WORLD,
+                                  "../src/pymma/data/xold1.bin",
+                                  FILE_MODE_WRITE, &viewer));
+  PetscCall(VecView(mmax->xllast, viewer));
+  PetscCall(PetscViewerBinaryOpen(PETSC_COMM_WORLD,
+                                  "../src/pymma/data/xold2.bin",
+                                  FILE_MODE_WRITE, &viewer));
+  PetscCall(VecView(mmax->xlllast, viewer));
+  PetscCall(PetscViewerBinaryOpen(PETSC_COMM_WORLD, "../src/pymma/data/dc.bin",
+                                  FILE_MODE_WRITE, &viewer));
+  PetscCall(VecView(dc, viewer));
+  PetscCall(PetscViewerBinaryOpen(PETSC_COMM_WORLD, "../src/pymma/data/upp.bin",
+                                  FILE_MODE_WRITE, &viewer));
+  PetscCall(VecView(mmax->mmaU, viewer));
+  PetscCall(PetscViewerBinaryOpen(PETSC_COMM_WORLD, "../src/pymma/data/low.bin",
+                                  FILE_MODE_WRITE, &viewer));
+  PetscCall(VecView(mmax->mmaL, viewer));
   PetscCall(PetscViewerDestroy(&viewer));
-  PetscCall(VecView(mmax->xlast, PETSC_VIEWER_STDOUT_WORLD));
-
   PetscFunctionReturn(0);
 }
