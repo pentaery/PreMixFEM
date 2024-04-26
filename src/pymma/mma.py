@@ -257,6 +257,7 @@ def subsolv(m,n,epsimin,low,upp,alfa,beta,p0,q0,P,Q,a0,a,b,c,d):
     itera = 0
     # Start while epsi>epsimin
     while epsi > epsimin:
+        itera += 1
         epsvecn = epsi*een
         epsvecm = epsi*eem
         ux1 = upp-x
@@ -287,7 +288,6 @@ def subsolv(m,n,epsimin,low,upp,alfa,beta,p0,q0,P,Q,a0,a,b,c,d):
         # Start while (residumax>0.9*epsi) and (ittt<200)
         while (residumax > 0.9*epsi) and (ittt < 200):
             ittt = ittt+1
-            itera = itera+1
             ux1 = upp-x
             xl1 = x-low
             ux2 = ux1*ux1
@@ -346,7 +346,6 @@ def subsolv(m,n,epsimin,low,upp,alfa,beta,p0,q0,P,Q,a0,a,b,c,d):
                 dlam = np.dot(GG,dx)/diaglamyi-dz*(a/diaglamyi)+dellamyi/diaglamyi
                 # End if m<n
             dy = -dely/diagy+dlam/diagy
-            print(dy)
             dxsi = -xsi+epsvecn/(x-alfa)-(xsi*dx)/(x-alfa)
             deta = -eta+epsvecn/(beta-x)+(eta*dx)/(beta-x)
             dmu = -mu+epsvecm/y-(mu*dy)/y
@@ -382,6 +381,7 @@ def subsolv(m,n,epsimin,low,upp,alfa,beta,p0,q0,P,Q,a0,a,b,c,d):
             while (resinew > residunorm) and (itto < 50):
                 itto = itto+1
                 x = xold+steg*dx
+
                 y = yold+steg*dy
                 z = zold+steg*dz
                 lam = lamold+steg*dlam

@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
   PCCtx test;
   MMAx mmax;
   PetscInt grid = 20;
-  PetscInt testiter = 1;
+  PetscInt testiter = 8;
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-mesh", &grid, NULL));
   PetscInt mesh[3] = {grid, grid, grid};
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
   PetscCall(VecSet(mmax.xlast, volfrac));
   PetscCall(VecSet(x, volfrac));
   PetscCall(formBoundary(&test));
-  while (change > 1e-4) {
+  while (PETSC_TRUE) {
     if (loop <= 40) {
       penal = 1;
     } else if (loop <= 50) {
@@ -62,9 +62,9 @@ int main(int argc, char **argv) {
     } else {
       penal = 3;
     }
-    // if (loop == 60) {
-    //   break;
-    // }
+    if (loop == 60) {
+      break;
+    }
     loop += 1;
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "loop: %d\n", loop));
 
@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
     PetscCall(mmaSub(&test, &mmax, dc));
     PetscCall(subSolv(&test, &mmax, x));
     if (loop == testiter) {
-      // PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
+      PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
       break;
     }
     PetscCall(computeChange(&mmax, x, &change));

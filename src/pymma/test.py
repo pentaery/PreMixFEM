@@ -1,9 +1,9 @@
 import numpy as np
 from mma import mmasub
 
-n = 8
+n = 64
 m = 1
-iter = 1
+iter = 8
 xval = np.fromfile("src/pymma/data/xval.bin", dtype=">f8")
 xold1 = np.fromfile("src/pymma/data/xold1.bin", dtype=">f8")
 xold2 = np.fromfile("src/pymma/data/xold2.bin", dtype=">f8")
@@ -23,7 +23,7 @@ low = low.reshape((n, 1))
 df0dx = df0dx[1:]
 df0dx = df0dx.reshape((n, 1))
 f0val = 0
-fval = (np.sum(xval) - n * 0.1)
+fval = np.sum(xval) - n * 0.1
 a0 = 1
 a = np.zeros((m, 1))
 c = np.full((m, 1), 1000)
@@ -53,4 +53,4 @@ xmma, ymma, zmma, lam, xsi, eta, mu, zet, s, low, upp = mmasub(
     d,
     move,
 )
-
+print(xmma)
