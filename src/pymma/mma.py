@@ -284,6 +284,10 @@ def subsolv(m,n,epsimin,low,upp,alfa,beta,p0,q0,P,Q,a0,a,b,c,d):
         residu = np.concatenate((residu1, residu2), axis = 0)
         residunorm = np.sqrt((np.dot(residu.T,residu)).item())
         residumax = np.max(np.abs(residu))
+        # print(x)
+        print(residumax)
+        print(residunorm)
+
         ittt = 0
         # Start while (residumax>0.9*epsi) and (ittt<200)
         while (residumax > 0.9*epsi) and (ittt < 200):
@@ -415,12 +419,15 @@ def subsolv(m,n,epsimin,low,upp,alfa,beta,p0,q0,P,Q,a0,a,b,c,d):
                 resinew = np.sqrt(np.dot(residu.T,residu))
                 steg = steg/2
                 # End: while (resinew>residunorm) and (itto<50)
+            # print('itto: ', itto)
             residunorm = resinew.copy()
             residumax = np.max(abs(residu))
             steg = 2*steg
             # End: while (residumax>0.9*epsi) and (ittt<200)
+        # print('ittt: ', ittt)
         epsi = 0.1*epsi
         # End: while epsi>epsimin
+    # print('itera: ', itera)
     xmma = x.copy()
     ymma = y.copy()
     zmma = z.copy()

@@ -126,11 +126,6 @@ PetscErrorCode mmaLimit(PCCtx *s_ctx, MMAx *mmax, PetscInt loop) {
   PetscScalar move = 0.5;
   PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
   PetscScalar ***xval, ***xold1, ***xold2, ***low, ***upp;
-  // PetscCall(VecView(mmax->mmaL, PETSC_VIEWER_STDOUT_WORLD));
-  // PetscCall(VecView(mmax->mmaU, PETSC_VIEWER_STDOUT_WORLD));
-  // PetscCall(VecView(mmax->xlast, PETSC_VIEWER_STDOUT_WORLD));
-  // PetscCall(VecView(mmax->xllast, PETSC_VIEWER_STDOUT_WORLD));
-  // PetscCall(VecView(mmax->xlllast, PETSC_VIEWER_STDOUT_WORLD));
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mmax->xlast, &xval));
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mmax->xllast, &xold1));
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mmax->xlllast, &xold2));
@@ -274,8 +269,9 @@ PetscErrorCode subSolv(PCCtx *s_ctx, MMAx *mmax, Vec x) {
   PetscInt itera = 0;
   while (epsi > epsimin) {
     PetscCall(computeResidual(s_ctx, mmax, x, epsi, &residumax, &residunorm));
-    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "residumax: %f\n", residumax));
-    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "residunorm: %f\n", residunorm));
+    // PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
+    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "residumax: %.12f\n", residumax));
+    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "residunorm: %.12f\n", residunorm));
     // PetscCall(VecView(mmax->mmaL, PETSC_VIEWER_STDOUT_WORLD));
     PetscInt ittt = 0;
     itera++;
@@ -294,13 +290,15 @@ PetscErrorCode subSolv(PCCtx *s_ctx, MMAx *mmax, Vec x) {
               omegaUpdate(mmax, x, -PetscPowScalar(0.5, itto - 1) * step));
         }
         PetscCall(computeResidual(s_ctx, mmax, x, epsi, &residumax, &resinew));
-        step /= 2;
       }
       residunorm = resinew;
       step *= 2;
+      // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "itto: %d\n", itto));
     }
     epsi *= 0.1;
+    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "ittt: %d\n", ittt));
   }
+  // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "itera: %d\n", itera));
   PetscFunctionReturn(0);
 }
 PetscErrorCode omegaInitial(PCCtx *s_ctx, MMAx *mmax, Vec x) {

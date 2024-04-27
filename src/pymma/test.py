@@ -1,7 +1,7 @@
 import numpy as np
 from mma import mmasub
 
-n = 64
+n = 8000
 m = 1
 iter = 8
 xval = np.fromfile("src/pymma/data/xval.bin", dtype=">f8")

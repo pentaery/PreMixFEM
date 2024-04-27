@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
   Mat A;
   Vec rhs, t, x, dc;
   KSP ksp;
-  PetscInt loop = 0, iter = 0, penal = 1;
+  PetscInt loop = 0, iter = 0, penal = 3;
   PetscScalar change = 1, tau = 0, initial = 0, xvolfrac = 0;
 
   char str[80];
@@ -71,8 +71,8 @@ int main(int argc, char **argv) {
     PetscCall(VecSum(x, &xvolfrac));
     xvolfrac /= test.M * test.N * test.P;
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "xvolfrac: %f\n", xvolfrac));
-    // PetscCall(VecMax(x, NULL, &xvolfrac));
-    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "xmax: %f\n", xvolfrac));
+    PetscCall(VecMax(x, NULL, &xvolfrac));
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "xmax: %f\n", xvolfrac));
 
     // PetscViewer viewer;
     // sprintf(str, "../data/output/change%04d.vtr", loop);
