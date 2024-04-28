@@ -119,8 +119,8 @@ PetscErrorCode mmaFinal(MMAx *mma_text) {
 PetscErrorCode mmaLimit(PCCtx *s_ctx, MMAx *mmax, PetscInt loop) {
   PetscFunctionBeginUser;
   PetscScalar asyinit = 0.5;
-  PetscScalar asyincr = 1.2;
-  PetscScalar asydecr = 0.7;
+  PetscScalar asyincr = 1.0/0.85;
+  PetscScalar asydecr = 0.85;
   PetscScalar sign = 0;
   PetscScalar albefa = 0.1;
   PetscScalar move = 0.5;
@@ -132,12 +132,12 @@ PetscErrorCode mmaLimit(PCCtx *s_ctx, MMAx *mmax, PetscInt loop) {
   PetscCall(
       DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
   if (loop <= 2) {
-    PetscCall(VecWAXPY(mmax->mmaL, -asyinit, mmax->ubd, mmax->xlast));
-    PetscCall(VecAXPY(mmax->mmaL, asyinit, mmax->lbd));
-    PetscCall(VecWAXPY(mmax->mmaU, asyinit, mmax->ubd, mmax->xlast));
-    PetscCall(VecAXPY(mmax->mmaU, -asyinit, mmax->lbd));
-    // PetscCall(VecSet(mmax->mmaL, -0.15));
-    // PetscCall(VecSet(mmax->mmaU, 0.15));
+    // PetscCall(VecWAXPY(mmax->mmaL, -asyinit, mmax->ubd, mmax->xlast));
+    // PetscCall(VecAXPY(mmax->mmaL, asyinit, mmax->lbd));
+    // PetscCall(VecWAXPY(mmax->mmaU, asyinit, mmax->ubd, mmax->xlast));
+    // PetscCall(VecAXPY(mmax->mmaU, -asyinit, mmax->lbd));
+    PetscCall(VecSet(mmax->mmaL, -0.15));
+    PetscCall(VecSet(mmax->mmaU, 0.15));
   } else {
     PetscCall(DMDAVecGetArray(s_ctx->dm, mmax->mmaL, &low));
     PetscCall(DMDAVecGetArray(s_ctx->dm, mmax->mmaU, &upp));
@@ -270,9 +270,10 @@ PetscErrorCode subSolv(PCCtx *s_ctx, MMAx *mmax, Vec x) {
   while (epsi > epsimin) {
     PetscCall(computeResidual(s_ctx, mmax, x, epsi, &residumax, &residunorm));
     // PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
-    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "residumax: %.12f\n", residumax));
-    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "residunorm: %.12f\n", residunorm));
-    // PetscCall(VecView(mmax->mmaL, PETSC_VIEWER_STDOUT_WORLD));
+    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "residumax: %.12f\n",
+    // residumax)); PetscCall(PetscPrintf(PETSC_COMM_WORLD, "residunorm:
+    // %.12f\n", residunorm)); PetscCall(VecView(mmax->mmaL,
+    // PETSC_VIEWER_STDOUT_WORLD));
     PetscInt ittt = 0;
     itera++;
     while (residumax > 0.9 * epsi && ittt < 200) {
@@ -290,6 +291,7 @@ PetscErrorCode subSolv(PCCtx *s_ctx, MMAx *mmax, Vec x) {
               omegaUpdate(mmax, x, -PetscPowScalar(0.5, itto - 1) * step));
         }
         PetscCall(computeResidual(s_ctx, mmax, x, epsi, &residumax, &resinew));
+        step /= 2;
       }
       residunorm = resinew;
       step *= 2;

@@ -168,24 +168,19 @@ PetscErrorCode computeCostMMA(PCCtx *s_ctx, Vec t, PetscScalar *cost) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode adjointGradient(PCCtx *s_ctx, MMAx *mma_text, Mat A, Vec x,
-                               Vec t, Vec dc, PetscInt penal) {
+PetscErrorCode adjointGradient(PCCtx *s_ctx, MMAx *mma_text, KSP ksp, Mat A,
+                               Vec x, Vec t, Vec dc, PetscInt penal) {
   PetscFunctionBeginUser;
   PetscInt ex, ey, ez, nx, ny, nz, startx, starty, startz, i;
   PetscScalar ***arrayBoundary, ***arrayx, ***arraydc, ***arrayt,
       ***arraylambda, ***arraykappa[DIM];
   Vec lambda, kappa_loc[DIM], t_loc, lambda_loc;
-  KSP ksp1;
+  PetscInt iter;
   // calculate lambda
   PetscCall(DMCreateGlobalVector(s_ctx->dm, &lambda));
-
-  PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp1));
-  PetscCall(KSPSetTolerances(ksp1, 1e-6, PETSC_DEFAULT, PETSC_DEFAULT,
-                             PETSC_DEFAULT));
-  PetscCall(KSPSetOperators(ksp1, A, A));
-  PetscCall(KSPSetFromOptions(ksp1));
-  PetscCall(KSPSolve(ksp1, mma_text->dgT, lambda));
-  PetscCall(KSPDestroy(&ksp1));
+  PetscCall(KSPSolve(ksp, mma_text->dgT, lambda));
+  PetscCall(KSPGetIterationNumber(ksp, &iter));
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "iter: %d\n", iter));
 
   PetscCall(
       DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));

@@ -285,8 +285,6 @@ def subsolv(m,n,epsimin,low,upp,alfa,beta,p0,q0,P,Q,a0,a,b,c,d):
         residunorm = np.sqrt((np.dot(residu.T,residu)).item())
         residumax = np.max(np.abs(residu))
         # print(x)
-        print(residumax)
-        print(residunorm)
 
         ittt = 0
         # Start while (residumax>0.9*epsi) and (ittt<200)

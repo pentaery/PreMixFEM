@@ -36,7 +36,7 @@ typedef struct mma_text {
 
 PetscErrorCode mmaInit(PCCtx *s_ctx, MMAx *mma_text);
 PetscErrorCode mmaFinal(MMAx *mma_text);
-PetscErrorCode adjointGradient(PCCtx *s_ctx, MMAx *mma_text, Mat A, Vec x,
+PetscErrorCode adjointGradient(PCCtx *s_ctx, MMAx *mma_text,KSP ksp, Mat A, Vec x,
                                Vec t, Vec dc, PetscInt penal);
 PetscErrorCode adjointGradient1(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
                                 PetscInt penal);

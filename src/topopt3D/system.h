@@ -17,8 +17,8 @@
 #define volfrac 0.1
 #define f0 1.0
 
-#define kH 1e3
-#define kL 2
+#define kH 1
+#define kL 1e-3
 #define xlow 0
 
 PetscErrorCode formBoundary(PCCtx *s_ctx);

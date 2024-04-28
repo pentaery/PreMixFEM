@@ -54,15 +54,15 @@ int main(int argc, char **argv) {
   PetscCall(VecSet(mmax.xlast, volfrac));
   PetscCall(VecSet(x, volfrac));
   PetscCall(formBoundary(&test));
-  while (PETSC_TRUE) {
-    if (loop <= 40) {
+  while (change > 1e-3) {
+    if (loop <= 10) {
       penal = 1;
-    } else if (loop <= 50) {
+    } else if (loop <= 20) {
       penal = 2;
     } else {
       penal = 3;
     }
-    if (loop == 60) {
+    if (loop == 220) {
       break;
     }
     loop += 1;
@@ -70,16 +70,13 @@ int main(int argc, char **argv) {
 
     PetscCall(VecSum(x, &xvolfrac));
     xvolfrac /= test.M * test.N * test.P;
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "xvolfrac: %f\n", xvolfrac));
-    PetscCall(VecMax(x, NULL, &xvolfrac));
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "xmax: %f\n", xvolfrac));
 
-    // PetscViewer viewer;
-    // sprintf(str, "../data/output/change%04d.vtr", loop);
-    // PetscCall(
-    //     PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
-    // PetscCall(VecView(x, viewer));
-    // PetscCall(PetscViewerDestroy(&viewer));
+    PetscViewer viewer;
+    sprintf(str, "../data/output/change%04d.vtr", loop);
+    PetscCall(
+        PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
+    PetscCall(VecView(x, viewer));
+    PetscCall(PetscViewerDestroy(&viewer));
 
     PetscCall(formkappa(&test, x, penal));
     PetscCall(formMatrix(&test, A));
@@ -97,18 +94,24 @@ int main(int argc, char **argv) {
 
     PetscCall(computeCostMMA(&test, t, &cost));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
-    // PetscCall(VecSet(dc, 0));
-    PetscCall(adjointGradient(&test, &mmax, A, mmax.xlast, t, dc, penal));
-    if (loop == testiter) {
-      PetscCall(outputTest(&mmax, dc));
-    }
+    PetscCall(VecSet(dc, 0));
+    PetscCall(adjointGradient(&test, &mmax, ksp, A, mmax.xlast, t, dc, penal));
+    // if (loop == testiter) {
+    //   PetscCall(outputTest(&mmax, dc));
+    // }
     PetscCall(mmaLimit(&test, &mmax, loop));
     PetscCall(mmaSub(&test, &mmax, dc));
     PetscCall(subSolv(&test, &mmax, x));
-    if (loop == testiter) {
-      PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
-      break;
-    }
+    // if (loop == testiter) {
+    //   PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
+    //   PetscViewer viewer;
+    //   PetscCall(PetscViewerBinaryOpen(PETSC_COMM_WORLD,
+    //                                   "../src/pymma/data/x.bin",
+    //                                   FILE_MODE_WRITE, &viewer));
+    //   PetscCall(VecView(x, viewer));
+    //   PetscCall(PetscViewerDestroy(&viewer));
+    //   break;
+    // }
     PetscCall(computeChange(&mmax, x, &change));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));
   }
