@@ -14,7 +14,7 @@
 
 #define tD 0.0
 #define xCont 1e-6
-#define volfrac 0.3
+#define volfrac 0.1
 #define f0 1.0
 
 #define kH 1

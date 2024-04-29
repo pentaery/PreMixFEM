@@ -19,7 +19,8 @@ PetscErrorCode mmaInit(PCCtx *s_ctx, MMAx *mma_text);
 PetscErrorCode mmaFinal(MMAx *mma_text);
 PetscErrorCode mmaLimit(PCCtx *s_ctx, MMAx *mmax, PetscInt penal);
 PetscErrorCode mmaSub(PCCtx *s_ctx, MMAx *mmax, Vec dc);
-PetscErrorCode gcmmaSub(PCCtx *s_ctx, MMAx *mmax, Vec dc, Vec raa, Vec raa0);
+PetscErrorCode gcmmaSub(PCCtx *s_ctx, MMAx *mmax, Vec dc, PetscScalar *raa,
+                        PetscScalar *raa0);
 PetscErrorCode subSolv(PCCtx *s_ctx, MMAx *mmax, Vec x);
 PetscErrorCode omegaInitial(PCCtx *s_ctx, MMAx *mmax, Vec x);
 PetscErrorCode computeResidual(PCCtx *s_ctx, MMAx *mmax, Vec x,
@@ -29,7 +30,8 @@ PetscErrorCode computeDelta(PCCtx *s_ctx, MMAx *mmax, Vec x, PetscScalar epsi);
 PetscErrorCode findStep(PCCtx *s_ctx, MMAx *mmax, Vec x, PetscScalar *step);
 PetscErrorCode omegaUpdate(MMAx *mmax, Vec x, PetscScalar coef);
 PetscErrorCode outputTest(MMAx *mmax, Vec dc);
-PetscErrorCode raaInit(PCCtx *s_ctx, MMAx *mmax, Vec raa, Vec raa0, Vec dc);
-PetscErrorCode conCheck(PCCtx *s_ctx, MMAx *mmax, Mat A, KSP ksp, Vec rhs,
-                        Vec t, Vec x, Vec raa, Vec raa0, PetscInt penal,
+PetscErrorCode raaInit(PCCtx *s_ctx, MMAx *mmax, PetscScalar *raa,
+                       PetscScalar *raa0, Vec dc);
+PetscErrorCode conCheck(PCCtx *s_ctx, MMAx *mmax, Vec x, Vec xg, Vec dc,
+                        PetscScalar *raa, PetscScalar *raa0,
                         PetscBool *conserve);

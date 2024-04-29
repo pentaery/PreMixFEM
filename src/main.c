@@ -55,14 +55,14 @@ int main(int argc, char **argv) {
   PetscCall(VecSet(x, volfrac));
   PetscCall(formBoundary(&test));
   while (change > 1e-3) {
-    if (loop <= 30) {
+    if (loop <= 15) {
       penal = 1;
-    } else if (loop <= 60) {
+    } else if (loop <= 30) {
       penal = 2;
     } else {
       penal = 3;
     }
-    if (loop == 220) {
+    if (loop == 200) {
       break;
     }
     loop += 1;

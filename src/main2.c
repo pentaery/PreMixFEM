@@ -29,10 +29,11 @@ int main(int argc, char **argv) {
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
   PetscScalar cost = 0;
   Mat A;
-  Vec rhs, t, x, dc, raa, raa0;
+  Vec rhs, t, x, xg, dc;
   KSP ksp;
   PetscInt loop = 0, iter = 0, penal = 3;
   PetscScalar change = 1, tau = 0, initial = 0, xvolfrac = 0;
+  PetscScalar raa, raa0;
 
   char str[80];
 
@@ -43,10 +44,9 @@ int main(int argc, char **argv) {
   PetscCall(DMCreateMatrix(test.dm, &A));
   PetscCall(DMCreateGlobalVector(test.dm, &rhs));
   PetscCall(DMCreateGlobalVector(test.dm, &x));
+  PetscCall(DMCreateGlobalVector(test.dm, &xg));
   PetscCall(DMCreateGlobalVector(test.dm, &t));
   PetscCall(DMCreateGlobalVector(test.dm, &dc));
-  PetscCall(DMCreateGlobalVector(test.dm, &raa));
-  PetscCall(DMCreateGlobalVector(test.dm, &raa0));
 
   PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
   PetscCall(
@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
     } else {
       penal = 3;
     }
-    if (loop == 600) {
+    if (loop == 200) {
       break;
     }
     loop += 1;
@@ -101,13 +101,13 @@ int main(int argc, char **argv) {
     // }
     PetscBool conserve = PETSC_TRUE;
     PetscCall(mmaLimit(&test, &mmax, loop));
-    PetscCall(raaInit(&test, &mmax, raa, raa0, dc));
+    PetscCall(raaInit(&test, &mmax, &raa, &raa0, dc));
     while (conserve) {
-      PetscCall(gcmmaSub(&test, &mmax, dc, raa, raa0));
-      PetscCall(subSolv(&test, &mmax, x));
-      PetscCall(conCheck(&test, &mmax, A, ksp, rhs, t, x, raa, raa0, penal,
-                         &conserve));
+      PetscCall(gcmmaSub(&test, &mmax, dc, &raa, &raa0));
+      PetscCall(subSolv(&test, &mmax, xg));
+      PetscCall(conCheck(&test, &mmax, x, xg, dc, &raa, &raa0, &conserve));
     }
+    PetscCall(VecCopy(xg, x));
     // if (loop == testiter) {
     //   PetscCall(VecView(x, PETSC_VIEWER_STDOUT_WORLD));
     //   PetscViewer viewer;
@@ -127,9 +127,7 @@ int main(int argc, char **argv) {
   PetscCall(VecDestroy(&t));
   PetscCall(VecDestroy(&dc));
   PetscCall(VecDestroy(&x));
-  PetscCall(VecDestroy(&raa));
-  PetscCall(VecDestroy(&raa0));
-
+  PetscCall(VecDestroy(&xg));
   PetscCall(KSPDestroy(&ksp));
   PetscCall(mmaFinal(&mmax));
   // PetscCall(PC_final(&test));
