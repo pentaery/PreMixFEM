@@ -14,11 +14,11 @@
 
 #define tD 0.0
 #define xCont 1e-6
-#define volfrac 0.1
+#define volfrac 0.3
 #define f0 1.0
 
 #define kH 1
-#define kL 1e-3
+#define kL 1e-6
 #define xlow 0
 
 PetscErrorCode formBoundary(PCCtx *s_ctx);

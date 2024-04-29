@@ -179,9 +179,7 @@ PetscErrorCode adjointGradient(PCCtx *s_ctx, MMAx *mma_text, KSP ksp, Mat A,
   // calculate lambda
   PetscCall(DMCreateGlobalVector(s_ctx->dm, &lambda));
   PetscCall(KSPSolve(ksp, mma_text->dgT, lambda));
-  PetscCall(KSPGetIterationNumber(ksp, &iter));
-  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "iter: %d\n", iter));
-
+  
   PetscCall(
       DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, s_ctx->boundary, &arrayBoundary));
