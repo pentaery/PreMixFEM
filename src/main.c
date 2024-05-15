@@ -13,6 +13,7 @@
 #include <petscoptions.h>
 #include <petscsys.h>
 #include <petscsystypes.h>
+#include <petsctime.h>
 #include <petscvec.h>
 #include <petscviewer.h>
 #include <petscviewerhdf5.h>
@@ -32,6 +33,7 @@ int main(int argc, char **argv) {
   KSP ksp;
   PetscInt loop = 0, iter = 0, penal = 3;
   PetscScalar change = 1, tau = 0, xvolfrac = 0;
+  PetscLogDouble solvetime1, solvetime2;
 
   char str[80];
 
@@ -54,7 +56,7 @@ int main(int argc, char **argv) {
   PetscCall(VecSet(x, volfrac));
   PetscCall(formBoundary(&test));
   while (PETSC_TRUE) {
-    if (loop == 150) {
+    if (loop == 300) {
       break;
     }
     loop += 1;
@@ -76,7 +78,10 @@ int main(int argc, char **argv) {
     PetscCall(formMatrix(&test, A));
     PetscCall(formRHS(&test, rhs, x, penal));
     PetscCall(KSPSetOperators(ksp, A, A));
+    PetscCall(PetscTime(&solvetime1));
     PetscCall(KSPSolve(ksp, rhs, t));
+    PetscCall(PetscTime(&solvetime2));
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "time: %f\n", solvetime2 - solvetime1));
     PetscCall(KSPGetIterationNumber(ksp, &iter));
 
     PetscCall(VecMax(t, NULL, &tau));
