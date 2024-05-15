@@ -23,7 +23,6 @@ int main(int argc, char **argv) {
   PCCtx test;
   MMAx mmax;
   PetscInt grid = 20;
-  PetscInt testiter = 8;
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-mesh", &grid, NULL));
   PetscInt mesh[3] = {grid, grid, grid};
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
@@ -32,7 +31,7 @@ int main(int argc, char **argv) {
   Vec rhs, t, x, dc;
   KSP ksp;
   PetscInt loop = 0, iter = 0, penal = 3;
-  PetscScalar change = 1, tau = 0, initial = 0, xvolfrac = 0;
+  PetscScalar change = 1, tau = 0, xvolfrac = 0;
 
   char str[80];
 
@@ -54,15 +53,8 @@ int main(int argc, char **argv) {
   PetscCall(VecSet(mmax.xlast, volfrac));
   PetscCall(VecSet(x, volfrac));
   PetscCall(formBoundary(&test));
-  while (change > 1e-3) {
-    if (loop <= 15) {
-      penal = 1;
-    } else if (loop <= 30) {
-      penal = 2;
-    } else {
-      penal = 3;
-    }
-    if (loop == 200) {
+  while (PETSC_TRUE) {
+    if (loop == 150) {
       break;
     }
     loop += 1;
@@ -71,12 +63,14 @@ int main(int argc, char **argv) {
     PetscCall(VecSum(x, &xvolfrac));
     xvolfrac /= test.M * test.N * test.P;
 
-    PetscViewer viewer;
-    sprintf(str, "../data/output/change%04d.vtr", loop);
-    PetscCall(
-        PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
-    PetscCall(VecView(x, viewer));
-    PetscCall(PetscViewerDestroy(&viewer));
+    if (loop % 10 == 0) {
+      PetscViewer viewer;
+      sprintf(str, "../data/output/change%04d.vtr", loop);
+      PetscCall(
+          PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
+      PetscCall(VecView(x, viewer));
+      PetscCall(PetscViewerDestroy(&viewer));
+    }
 
     PetscCall(formkappa(&test, x, penal));
     PetscCall(formMatrix(&test, A));

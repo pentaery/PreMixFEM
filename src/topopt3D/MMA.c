@@ -158,6 +158,11 @@ PetscErrorCode mmaLimit(PCCtx *s_ctx, MMAx *mmax, PetscInt loop) {
                               asydecr * (xold1[ez][ey][ex] - low[ez][ey][ex]);
             upp[ez][ey][ex] = xval[ez][ey][ex] +
                               asydecr * (upp[ez][ey][ex] - xold1[ez][ey][ex]);
+          } else {
+            low[ez][ey][ex] =
+                xval[ez][ey][ex] - (xold1[ez][ey][ex] - low[ez][ey][ex]);
+            upp[ez][ey][ex] =
+                xval[ez][ey][ex] + (upp[ez][ey][ex] - xold1[ez][ey][ex]);
           }
           low[ez][ey][ex] = PetscMax(low[ez][ey][ex],
                                      xval[ez][ey][ex] - 10.0 * (xmax - xmin));
@@ -200,6 +205,7 @@ PetscErrorCode mmaSub(PCCtx *s_ctx, MMAx *mmax, Vec dc) {
   PetscInt ex, ey, ez, nx, ny, nz, startx, starty, startz, i;
   PetscScalar ***arraydc, ***arrayp0, ***arrayq0, ***arrayp[m], ***arrayq[m],
       ***arrayb[m], ***arrayL, ***arrayU, ***arrayx;
+  PetscScalar raa = 1e-5;
   PetscCall(
       DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, dc, &arraydc));
@@ -219,23 +225,22 @@ PetscErrorCode mmaSub(PCCtx *s_ctx, MMAx *mmax, Vec dc) {
         arrayp0[ez][ey][ex] =
             PetscPowScalar(arrayU[ez][ey][ex] - arrayx[ez][ey][ex], 2) *
             (1.001 * PetscMax(0.0, arraydc[ez][ey][ex]) +
-             0.001 * PetscMax(0.0, -arraydc[ez][ey][ex]) +
-             1e-5 / (xmax - xmin));
+             0.001 * PetscMax(0.0, -arraydc[ez][ey][ex]) + raa / (xmax - xmin));
         arrayq0[ez][ey][ex] =
             PetscPowScalar(arrayx[ez][ey][ex] - arrayL[ez][ey][ex], 2) *
             (1.001 * PetscMax(0.0, -arraydc[ez][ey][ex]) +
-             0.001 * PetscMax(0.0, arraydc[ez][ey][ex]) + 1e-5 / (xmax - xmin));
+             0.001 * PetscMax(0.0, arraydc[ez][ey][ex]) + raa / (xmax - xmin));
         for (i = 0; i < m; ++i) {
           arrayp[i][ez][ey][ex] =
               PetscPowScalar(arrayU[ez][ey][ex] - arrayx[ez][ey][ex], 2) *
-              (1.001 + 1e-5 / (xmax - xmin));
+              (1.001 + raa / (xmax - xmin));
           arrayq[i][ez][ey][ex] =
               PetscPowScalar(arrayx[ez][ey][ex] - arrayL[ez][ey][ex], 2) *
-              (0.001 + 1e-5 / (xmax - xmin));
+              (0.001 + raa / (xmax - xmin));
           arrayb[i][ez][ey][ex] = (arrayU[ez][ey][ex] - arrayx[ez][ey][ex]) *
-                                      (1.001 + 1e-5 / (xmax - xmin)) +
+                                      (1.001 + raa / (xmax - xmin)) +
                                   (arrayx[ez][ey][ex] - arrayL[ez][ey][ex]) *
-                                      (0.001 + 1e-5 / (xmax - xmin));
+                                      (0.001 + raa / (xmax - xmin));
         }
       }
     }
