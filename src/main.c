@@ -9,6 +9,7 @@
 #include <petscdmtypes.h>
 #include <petscerror.h>
 #include <petscksp.h>
+#include <petsclog.h>
 #include <petscmat.h>
 #include <petscoptions.h>
 #include <petscsys.h>
@@ -23,8 +24,13 @@ int main(int argc, char **argv) {
       PetscInitialize(&argc, &argv, (char *)0, "Toplogical Optimiazation\n"));
   PCCtx test;
   MMAx mmax;
-  PetscInt grid = 20;
+  PetscInt grid = 50;
+  PetscInt iter_number = 300;
+  PetscLogEvent linearsolve, optimize;
+  PetscCall(PetscLogEventRegister("LinearSolve", 0, &linearsolve));
+  PetscCall(PetscLogEventRegister("Optimization", 1, &optimize));
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-mesh", &grid, NULL));
+  PetscCall(PetscOptionsGetInt(NULL, NULL, "-iter", &iter_number, NULL));
   PetscInt mesh[3] = {grid, grid, grid};
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
   PetscScalar cost = 0;
@@ -33,7 +39,6 @@ int main(int argc, char **argv) {
   KSP ksp;
   PetscInt loop = 0, iter = 0, penal = 3;
   PetscScalar change = 1, tau = 0, xvolfrac = 0;
-  PetscLogDouble solvetime1, solvetime2;
 
   char str[80];
 
@@ -56,7 +61,7 @@ int main(int argc, char **argv) {
   PetscCall(VecSet(x, volfrac));
   PetscCall(formBoundary(&test));
   while (PETSC_TRUE) {
-    if (loop == 300) {
+    if (loop == iter_number) {
       break;
     }
     loop += 1;
@@ -78,10 +83,10 @@ int main(int argc, char **argv) {
     PetscCall(formMatrix(&test, A));
     PetscCall(formRHS(&test, rhs, x, penal));
     PetscCall(KSPSetOperators(ksp, A, A));
-    PetscCall(PetscTime(&solvetime1));
+    PetscCall(PetscLogEventBegin(linearsolve, 0, 0, 0, 0));
     PetscCall(KSPSolve(ksp, rhs, t));
-    PetscCall(PetscTime(&solvetime2));
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "time: %f\n", solvetime2 - solvetime1));
+    PetscCall(PetscLogEventEnd(linearsolve, 0, 0, 0, 0));
+
     PetscCall(KSPGetIterationNumber(ksp, &iter));
 
     PetscCall(VecMax(t, NULL, &tau));
@@ -92,10 +97,14 @@ int main(int argc, char **argv) {
     PetscCall(computeCostMMA(&test, t, &cost));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
     PetscCall(VecSet(dc, 0));
+
+    PetscCall(PetscLogEventBegin(optimize, 0, 0, 0, 0));
     PetscCall(adjointGradient(&test, &mmax, ksp, A, mmax.xlast, t, dc, penal));
     PetscCall(mmaLimit(&test, &mmax, loop));
     PetscCall(mmaSub(&test, &mmax, dc));
     PetscCall(subSolv(&test, &mmax, x));
+    PetscCall(PetscLogEventEnd(optimize, 0, 0, 0, 0));
+
     PetscCall(computeChange(&mmax, x, &change));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));
   }
