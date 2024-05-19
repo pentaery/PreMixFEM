@@ -1,5 +1,6 @@
 #include "PreMixFEM_3D.h"
 #include "optimization.h"
+#include "system.h"
 #include <petscdm.h>
 #include <petscdmda.h>
 #include <petscdmdatypes.h>
@@ -17,51 +18,41 @@
 int main(int argc, char **argv) {
   PetscCall(
       PetscInitialize(&argc, &argv, (char *)0, "Toplogical Optimiazation\n"));
-  PCCtx test;
-  PetscInt grid = 2;
+  PCCtx test, test2;
+  PetscInt grid = 2, m1, n1;
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-mesh", &grid, NULL));
   PetscInt mesh[3] = {grid, grid, grid};
-  PetscInt iter;
+  PetscInt mesh2[3] = {grid * 2, grid * 2, grid * 2};
+  PetscInt ex, ey, ez, nx, ny, nz, startx, starty, startz;
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
-  PetscScalar cost = 0, change = 0, error = 0;
+  PetscScalar ***arrayt1;
+  Vec t1, t2;
   Mat A;
-  Vec rhs, t, x, dc, xlast, xllast;
-  KSP ksp;
-
   PetscCall(PC_init(&test, dom, mesh));
-  PetscCall(PC_print_info(&test));
+  PetscCall(PC_init(&test2, dom, mesh2));
+  PetscCall(DMCreateInterpolation(test.dm, test2.dm, &A, NULL));
+  PetscCall(MatGetSize(A, &m1, &n1));
+  PetscPrintf(PETSC_COMM_WORLD, "m1: %d, n1: %d\n", m1, n1);
 
-  PetscCall(DMCreateMatrix(test.dm, &A));
-  PetscCall(DMCreateGlobalVector(test.dm, &rhs));
-  PetscCall(DMCreateGlobalVector(test.dm, &x));
-  PetscCall(VecSet(x, 1e-6));
-  PetscCall(DMCreateGlobalVector(test.dm, &t));
-  PetscCall(DMCreateGlobalVector(test.dm, &dc));
+  PetscCall(DMCreateGlobalVector(test.dm, &t1));
+  PetscCall(DMDAGetCorners(test.dm, &startx, &starty, &startz, &nx, &ny, &nz));
 
-  PetscCall(formBoundary(&test));
-  PetscCall(formkappa(&test, x));
-  PetscCall(formMatrix(&test, A));
-  PetscCall(formRHS(&test, rhs, x));
+  PetscCall(DMDAVecGetArray(test.dm, t1, &arrayt1));
+  for (ez = startz; ez < startz + nz; ++ez) {
+    for (ey = starty; ey < starty + ny; ++ey) {
+      for (ex = startx; ex < startx + nx; ++ex) {
+        if (ex == 0 && ey == 0 && ez == 0) {
+          arrayt1[ez][ey][ex] = 1.0;
+        }
+      }
+    }
+  }
+  PetscCall(DMDAVecRestoreArray(test.dm, t1, &arrayt1));
 
-  PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
-  PetscCall(
-      KSPSetTolerances(ksp, 1e-6, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT));
-  PetscCall(KSPSetOperators(ksp, A, A));
-  PetscCall(KSPSetFromOptions(ksp));
-  PetscCall(KSPSolve(ksp, rhs, t));
-  // PetscCall(KSPGetResidualNorm(ksp, &error));
-  // PetscCall(KSPGetIterationNumber(ksp, &iter));
-  // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "residual norm: %f\n", error));
-  // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "iteration number: %d\n", iter));
+  PetscCall(DMCreateGlobalVector(test2.dm, &t2));
 
-  PetscCall(computeCostMMA(&test, t, &cost));
-  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
-
-  PetscCall(MatDestroy(&A));
-  PetscCall(VecDestroy(&rhs));
-  PetscCall(VecDestroy(&t));
-  PetscCall(VecDestroy(&dc));
-  PetscCall(VecDestroy(&x));
-  PetscCall(KSPDestroy(&ksp));
+  PetscCall(MatMult(A, t1, t2));
+  PetscCall(VecView(t1, PETSC_VIEWER_STDOUT_WORLD));
+  PetscCall(VecView(t2, PETSC_VIEWER_STDOUT_WORLD));
   PetscCall(PetscFinalize());
 }
