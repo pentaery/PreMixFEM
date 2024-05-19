@@ -50,7 +50,7 @@ endif (CXX_FLAGS)
 project(PreMixFEM)
 set(SOURCES 
  src/PreMixFEM_3D.c
- src/test.c
+ src/main.c
 # src/test/functiontest.c
  src/topopt3D/optimization.c
  src/topopt3D/system.c

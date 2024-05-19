@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
   PCCtx test;
   MMAx mmax;
   PetscInt grid = 50;
-  PetscInt iter_number = 300;
+  PetscInt iter_number = 60;
   PetscLogEvent linearsolve, optimize;
   PetscCall(PetscLogEventRegister("LinearSolve", 0, &linearsolve));
   PetscCall(PetscLogEventRegister("Optimization", 1, &optimize));
@@ -70,14 +70,12 @@ int main(int argc, char **argv) {
     PetscCall(VecSum(x, &xvolfrac));
     xvolfrac /= test.M * test.N * test.P;
 
-    if (loop % 10 == 0) {
-      PetscViewer viewer;
-      sprintf(str, "../data/output/change%04d.vtr", loop);
-      PetscCall(
-          PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
-      PetscCall(VecView(x, viewer));
-      PetscCall(PetscViewerDestroy(&viewer));
-    }
+    PetscViewer viewer;
+    sprintf(str, "../data/output/change%04d.vtr", loop);
+    PetscCall(
+        PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
+    PetscCall(VecView(x, viewer));
+    PetscCall(PetscViewerDestroy(&viewer));
 
     PetscCall(formkappa(&test, x, penal));
     PetscCall(formMatrix(&test, A));
