@@ -186,3 +186,25 @@ PetscErrorCode formRHS(PCCtx *s_ctx, Vec rhs, Vec x, PetscInt penal) {
 
   PetscFunctionReturn(0);
 }
+
+PetscErrorCode xScaling(DM dm1, DM dm2, Vec x1, Vec x2) {
+  PetscFunctionBeginUser;
+  PetscInt ex, ey, ez, startx, starty, startz, nx, ny, nz;
+  PetscScalar ***arrayx1, ***arrayx2;
+  PetscCall(DMDAGetCorners(dm2, &startx, &starty, &startz, &nx, &ny, &nz));
+  PetscCall(DMDAVecGetArray(dm1, x1, &arrayx1));
+  PetscCall(DMDAVecGetArray(dm2, x2, &arrayx2));
+
+  for (ez = startz; ez < startz + nz; ++ez) {
+    for (ey = starty; ey < starty + ny; ++ey) {
+      for (ex = startx; ex < startx + nx; ++ex) {
+        arrayx2[ez][ey][ex] = arrayx1[ez / 2][ey / 2][ex / 2];
+      }
+    }
+  }
+
+  PetscCall(DMDAVecRestoreArray(dm1, x1, &arrayx1));
+  PetscCall(DMDAVecRestoreArray(dm2, x2, &arrayx2));
+
+  PetscFunctionReturn(0);
+}

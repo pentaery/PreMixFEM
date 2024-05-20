@@ -24,8 +24,8 @@ int main(int argc, char **argv) {
       PetscInitialize(&argc, &argv, (char *)0, "Toplogical Optimiazation\n"));
   PCCtx test;
   MMAx mmax;
-  PetscInt grid = 50;
-  PetscInt iter_number = 60;
+  PetscInt grid = 60;
+  PetscInt iter_number = 90;
   PetscLogEvent linearsolve, optimize;
   PetscCall(PetscLogEventRegister("LinearSolve", 0, &linearsolve));
   PetscCall(PetscLogEventRegister("Optimization", 1, &optimize));

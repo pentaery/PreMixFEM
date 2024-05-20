@@ -4,6 +4,7 @@
 #include <petscdm.h>
 #include <petscerror.h>
 #include <petscmat.h>
+#include <petscoptions.h>
 #include <petscsys.h>
 #include <petscsystypes.h>
 #include <petscvec.h>
@@ -2472,10 +2473,13 @@ PetscErrorCode PC_init(PCCtx *s_ctx, PetscScalar *dom, PetscInt *mesh) {
   s_ctx->H_y = dom[1] / (double)mesh[1];
   s_ctx->H_z = dom[2] / (double)mesh[2];
 
+  PetscInt progress;
+  PetscCall(
+      PetscOptionsGetInt(NULL, NULL, "-progress", &progress, NULL));
   PetscCall(DMDACreate3d(PETSC_COMM_WORLD, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
                          DM_BOUNDARY_NONE, DMDA_STENCIL_STAR, s_ctx->M,
-                         s_ctx->N, s_ctx->P, PETSC_DECIDE, PETSC_DECIDE,
-                         PETSC_DECIDE, 1, 1, NULL, NULL, NULL, &(s_ctx->dm)));
+                         s_ctx->N, s_ctx->P, progress, progress,
+                         progress, 1, 1, NULL, NULL, NULL, &(s_ctx->dm)));
   // If oversampling=1, DMDA has a ghost point width=1 now, and this will change
   // the construction of A_i in level-1.
   PetscCall(DMSetUp(s_ctx->dm));
