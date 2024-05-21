@@ -34,6 +34,7 @@ int main(int argc, char **argv) {
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-iter", &iter_number1, NULL));
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-iter2", &iter_number2, NULL));
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-iter3", &iter_number3, NULL));
+  PetscCall(PetscOptionsGetInt(NULL, NULL, "-frequency", &output_frequency, NULL));
   PetscInt mesh[3] = {grid, grid, grid};
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
   PetscScalar cost = 0;
