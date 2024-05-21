@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
     // PetscCall(computeCost(&test, t, rhs, &cost));
     // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
 
-    PetscCall(computeGradient(&test, x, t, dc));
+    // PetscCall(computeGradient(&test, x, t, dc));
     PetscCall(filter(&test, dc, x));
     PetscCall(optimalCriteria(&test, x, dc, &change));
     // PetscCall(

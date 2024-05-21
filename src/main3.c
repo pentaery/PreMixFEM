@@ -25,15 +25,15 @@ int main(int argc, char **argv) {
   PCCtx test;
   MMAx mmax;
   PetscInt grid = 20;
-  PetscInt iter_number1 = 30, iter_number2 = 30, output_frequency = 2;
+  PetscInt iter_number1 = 60, iter_number2 = 60, iter_number3 = 60,
+           output_frequency = 2;
   PetscLogEvent linearsolve, optimize;
   PetscCall(PetscLogEventRegister("LinearSolve", 0, &linearsolve));
   PetscCall(PetscLogEventRegister("Optimization", 1, &optimize));
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-mesh", &grid, NULL));
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-iter", &iter_number1, NULL));
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-iter2", &iter_number2, NULL));
-  PetscCall(
-      PetscOptionsGetInt(NULL, NULL, "-frequency", &output_frequency, NULL));
+  PetscCall(PetscOptionsGetInt(NULL, NULL, "-iter3", &iter_number3, NULL));
   PetscInt mesh[3] = {grid, grid, grid};
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
   PetscScalar cost = 0;
@@ -156,6 +156,10 @@ int main(int argc, char **argv) {
   PetscCall(xScaling(test.dm, test2.dm, xlastmid, mmax.xlast));
   PetscCall(xScaling(test.dm, test2.dm, xllastmid, mmax.xllast));
   PetscCall(xScaling(test.dm, test2.dm, xlllastmid, mmax.xlllast));
+  PetscCall(VecDestroy(&xmid));
+  PetscCall(VecDestroy(&xlastmid));
+  PetscCall(VecDestroy(&xllastmid));
+  PetscCall(VecDestroy(&xlllastmid));
   PetscCall(formBoundary(&test2));
   while (PETSC_TRUE) {
     if (loop == iter_number1 + iter_number2) {
@@ -199,6 +203,101 @@ int main(int argc, char **argv) {
     PetscCall(mmaLimit(&test2, &mmax, loop));
     PetscCall(mmaSub(&test2, &mmax, dc));
     PetscCall(subSolv(&test2, &mmax, x));
+    PetscCall(PetscLogEventEnd(optimize, 0, 0, 0, 0));
+
+    PetscCall(computeChange(&mmax, x, &change));
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));
+  }
+
+  PetscCall(MatDestroy(&A));
+  PetscCall(VecDestroy(&rhs));
+  PetscCall(VecDestroy(&t));
+  PetscCall(VecDestroy(&dc));
+  PetscCall(KSPDestroy(&ksp));
+
+  PetscCall(DMCreateGlobalVector(test2.dm, &xmid));
+  PetscCall(DMCreateGlobalVector(test2.dm, &xlastmid));
+  PetscCall(DMCreateGlobalVector(test2.dm, &xllastmid));
+  PetscCall(DMCreateGlobalVector(test2.dm, &xlllastmid));
+  PetscCall(VecCopy(x, xmid));
+  PetscCall(VecCopy(mmax.xlast, xlastmid));
+  PetscCall(VecCopy(mmax.xllast, xllastmid));
+  PetscCall(VecCopy(mmax.xlllast, xlllastmid));
+  PetscCall(VecDestroy(&x));
+  PetscCall(mmaFinal(&mmax));
+
+  // round3
+
+  PCCtx test3;
+  mesh[0] = grid * 4;
+  mesh[1] = grid * 4;
+  mesh[2] = grid * 4;
+  PetscCall(PC_init(&test3, dom, mesh));
+  PetscCall(mmaInit(&test3, &mmax));
+  PetscCall(PC_print_info(&test3));
+
+  PetscCall(DMCreateMatrix(test3.dm, &A));
+  PetscCall(DMCreateGlobalVector(test3.dm, &rhs));
+  PetscCall(DMCreateGlobalVector(test3.dm, &x));
+  PetscCall(DMCreateGlobalVector(test3.dm, &t));
+  PetscCall(DMCreateGlobalVector(test3.dm, &dc));
+
+  PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
+  PetscCall(
+      KSPSetTolerances(ksp, 1e-6, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT));
+  PetscCall(KSPSetFromOptions(ksp));
+  //   PetscCall(KSPSetUp(ksp));
+  PetscCall(xScaling(test2.dm, test3.dm, xmid, x));
+  PetscCall(xScaling(test2.dm, test3.dm, xlastmid, mmax.xlast));
+  PetscCall(xScaling(test2.dm, test3.dm, xllastmid, mmax.xllast));
+  PetscCall(xScaling(test2.dm, test3.dm, xlllastmid, mmax.xlllast));
+  PetscCall(VecDestroy(&xmid));
+  PetscCall(VecDestroy(&xlastmid));
+  PetscCall(VecDestroy(&xllastmid));
+  PetscCall(VecDestroy(&xlllastmid));
+  PetscCall(formBoundary(&test3));
+  while (PETSC_TRUE) {
+    if (loop == iter_number1 + iter_number2 + iter_number3) {
+      break;
+    }
+    loop += 1;
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "loop: %d\n", loop));
+
+    PetscCall(VecSum(x, &xvolfrac));
+    xvolfrac /= test3.M * test3.N * test3.P;
+
+    if (loop % output_frequency == 0) {
+      PetscViewer viewer;
+      sprintf(str, "../data/output/change%04d.vtr", loop);
+      PetscCall(
+          PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
+      PetscCall(VecView(x, viewer));
+      PetscCall(PetscViewerDestroy(&viewer));
+    }
+    PetscCall(formkappa(&test3, x, penal));
+    PetscCall(formMatrix(&test3, A));
+    PetscCall(formRHS(&test3, rhs, x, penal));
+    PetscCall(KSPSetOperators(ksp, A, A));
+    PetscCall(PetscLogEventBegin(linearsolve, 0, 0, 0, 0));
+    PetscCall(KSPSolve(ksp, rhs, t));
+    PetscCall(PetscLogEventEnd(linearsolve, 0, 0, 0, 0));
+
+    PetscCall(KSPGetIterationNumber(ksp, &iter));
+
+    PetscCall(VecMax(t, NULL, &tau));
+    tau -= tD;
+    tau *= kL / f0;
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "tau: %f\n", tau));
+
+    PetscCall(computeCostMMA(&test3, t, &cost));
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "cost: %f\n", cost));
+    PetscCall(VecSet(dc, 0));
+
+    PetscCall(PetscLogEventBegin(optimize, 0, 0, 0, 0));
+    PetscCall(adjointGradient(&test3, &mmax, ksp, A, mmax.xlast, t, dc, penal));
+    PetscCall(mmaLimit(&test3, &mmax, loop));
+    PetscCall(mmaSub(&test3, &mmax, dc));
+    PetscCall(subSolv(&test3, &mmax, x));
     PetscCall(PetscLogEventEnd(optimize, 0, 0, 0, 0));
 
     PetscCall(computeChange(&mmax, x, &change));
