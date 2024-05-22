@@ -74,14 +74,14 @@ int main(int argc, char **argv) {
     PetscCall(VecSum(x, &xvolfrac));
     xvolfrac /= test.M * test.N * test.P;
 
-    if (loop % output_frequency == 0) {
-      PetscViewer viewer;
-      sprintf(str, "../data/output/change%04d.vtr", loop);
-      PetscCall(
-          PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
-      PetscCall(VecView(x, viewer));
-      PetscCall(PetscViewerDestroy(&viewer));
-    }
+    // if (loop % output_frequency == 0) {
+    //   PetscViewer viewer;
+    //   sprintf(str, "../data/output/change%04d.vtr", loop);
+    //   PetscCall(
+    //       PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
+    //   PetscCall(VecView(x, viewer));
+    //   PetscCall(PetscViewerDestroy(&viewer));
+    // }
 
     PetscCall(formkappa(&test, x, penal));
     PetscCall(formMatrix(&test, A));
@@ -172,14 +172,16 @@ int main(int argc, char **argv) {
     PetscCall(VecSum(x, &xvolfrac));
     xvolfrac /= test2.M * test2.N * test2.P;
 
-    if (loop % output_frequency == 0) {
-      PetscViewer viewer;
-      sprintf(str, "../data/output/change%04d.vtr", loop);
-      PetscCall(
-          PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
-      PetscCall(VecView(x, viewer));
-      PetscCall(PetscViewerDestroy(&viewer));
-    }
+    // if (loop % output_frequency == 0) {
+    //   PetscViewer viewer;
+    //   sprintf(str, "../data/output/change%04d.vtr", loop);
+    //   PetscCall(
+    //       PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE,
+    //       &viewer));
+    //   PetscCall(VecView(x, viewer));
+    //   PetscCall(PetscViewerDestroy(&viewer));
+    // }
+    
     PetscCall(formkappa(&test2, x, penal));
     PetscCall(formMatrix(&test2, A));
     PetscCall(formRHS(&test2, rhs, x, penal));
