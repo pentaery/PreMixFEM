@@ -51,7 +51,7 @@ PetscErrorCode mmaInit(PCCtx *s_ctx, MMAx *mma_text) {
   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->temp2));
   PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->temp3));
 
-  for (i = 0; i < m; i++) {
+  for (i = 0; i < MMA_M; i++) {
     PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->p[i]));
     PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->q[i]));
     PetscCall(DMCreateGlobalVector(s_ctx->dm, &mma_text->gvec[i]));
@@ -107,7 +107,7 @@ PetscErrorCode mmaFinal(MMAx *mma_text) {
   PetscCall(VecDestroy(&mma_text->temp2));
   PetscCall(VecDestroy(&mma_text->temp3));
 
-  for (i = 0; i < m; i++) {
+  for (i = 0; i < MMA_M; i++) {
     PetscCall(VecDestroy(&mma_text->p[i]));
     PetscCall(VecDestroy(&mma_text->q[i]));
     PetscCall(VecDestroy(&mma_text->gvec[i]));
@@ -203,8 +203,8 @@ PetscErrorCode mmaLimit(PCCtx *s_ctx, MMAx *mmax, PetscInt loop) {
 PetscErrorCode mmaSub(PCCtx *s_ctx, MMAx *mmax, Vec dc) {
   PetscFunctionBeginUser;
   PetscInt ex, ey, ez, nx, ny, nz, startx, starty, startz, i;
-  PetscScalar ***arraydc, ***arrayp0, ***arrayq0, ***arrayp[m], ***arrayq[m],
-      ***arrayb[m], ***arrayL, ***arrayU, ***arrayx;
+  PetscScalar ***arraydc, ***arrayp0, ***arrayq0, ***arrayp[MMA_M], ***arrayq[MMA_M],
+      ***arrayb[MMA_M], ***arrayL, ***arrayU, ***arrayx;
   PetscScalar raa = 1e-5;
   PetscCall(
       DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
@@ -214,7 +214,7 @@ PetscErrorCode mmaSub(PCCtx *s_ctx, MMAx *mmax, Vec dc) {
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mmax->xlast, &arrayx));
   PetscCall(DMDAVecGetArray(s_ctx->dm, mmax->p0, &arrayp0));
   PetscCall(DMDAVecGetArray(s_ctx->dm, mmax->q0, &arrayq0));
-  for (i = 0; i < m; i++) {
+  for (i = 0; i < MMA_M; i++) {
     PetscCall(DMDAVecGetArray(s_ctx->dm, mmax->p[i], &arrayp[i]));
     PetscCall(DMDAVecGetArray(s_ctx->dm, mmax->q[i], &arrayq[i]));
     PetscCall(DMDAVecGetArray(s_ctx->dm, mmax->b[i], &arrayb[i]));
@@ -230,7 +230,7 @@ PetscErrorCode mmaSub(PCCtx *s_ctx, MMAx *mmax, Vec dc) {
             PetscPowScalar(arrayx[ez][ey][ex] - arrayL[ez][ey][ex], 2) *
             (1.001 * PetscMax(0.0, -arraydc[ez][ey][ex]) +
              0.001 * PetscMax(0.0, arraydc[ez][ey][ex]) + raa / (xmax - xmin));
-        for (i = 0; i < m; ++i) {
+        for (i = 0; i < MMA_M; ++i) {
           arrayp[i][ez][ey][ex] =
               PetscPowScalar(arrayU[ez][ey][ex] - arrayx[ez][ey][ex], 2) *
               (1.001 + raa / (xmax - xmin));
@@ -248,7 +248,7 @@ PetscErrorCode mmaSub(PCCtx *s_ctx, MMAx *mmax, Vec dc) {
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, mmax->xlast, &arrayx));
   PetscScalar fval = 0;
   PetscCall(VecSum(mmax->xlast, &fval));
-  for (i = 0; i < m; ++i) {
+  for (i = 0; i < MMA_M; ++i) {
     PetscCall(DMDAVecRestoreArray(s_ctx->dm, mmax->b[i], &arrayb[i]));
     PetscCall(VecSum(mmax->b[i], &mmax->bval[i]));
     mmax->bval[i] -= fval;
@@ -260,7 +260,7 @@ PetscErrorCode mmaSub(PCCtx *s_ctx, MMAx *mmax, Vec dc) {
 
   PetscCall(DMDAVecRestoreArray(s_ctx->dm, mmax->p0, &arrayp0));
   PetscCall(DMDAVecRestoreArray(s_ctx->dm, mmax->q0, &arrayq0));
-  for (i = 0; i < m; i++) {
+  for (i = 0; i < MMA_M; i++) {
     PetscCall(DMDAVecRestoreArray(s_ctx->dm, mmax->p[i], &arrayp[i]));
     PetscCall(DMDAVecRestoreArray(s_ctx->dm, mmax->q[i], &arrayq[i]));
   }
@@ -270,8 +270,8 @@ PetscErrorCode gcmmaSub(PCCtx *s_ctx, MMAx *mmax, Vec dc, PetscScalar *raa,
                         PetscScalar *raa0) {
   PetscFunctionBeginUser;
   PetscInt ex, ey, ez, nx, ny, nz, startx, starty, startz, i;
-  PetscScalar ***arraydc, ***arrayp0, ***arrayq0, ***arrayp[m], ***arrayq[m],
-      ***arrayb[m], ***arrayL, ***arrayU, ***arrayx;
+  PetscScalar ***arraydc, ***arrayp0, ***arrayq0, ***arrayp[MMA_M], ***arrayq[MMA_M],
+      ***arrayb[MMA_M], ***arrayL, ***arrayU, ***arrayx;
   PetscCall(
       DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, dc, &arraydc));
@@ -280,7 +280,7 @@ PetscErrorCode gcmmaSub(PCCtx *s_ctx, MMAx *mmax, Vec dc, PetscScalar *raa,
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mmax->xlast, &arrayx));
   PetscCall(DMDAVecGetArray(s_ctx->dm, mmax->p0, &arrayp0));
   PetscCall(DMDAVecGetArray(s_ctx->dm, mmax->q0, &arrayq0));
-  for (i = 0; i < m; i++) {
+  for (i = 0; i < MMA_M; i++) {
     PetscCall(DMDAVecGetArray(s_ctx->dm, mmax->p[i], &arrayp[i]));
     PetscCall(DMDAVecGetArray(s_ctx->dm, mmax->q[i], &arrayq[i]));
     PetscCall(DMDAVecGetArray(s_ctx->dm, mmax->b[i], &arrayb[i]));
@@ -298,7 +298,7 @@ PetscErrorCode gcmmaSub(PCCtx *s_ctx, MMAx *mmax, Vec dc, PetscScalar *raa,
             (1.001 * PetscMax(0.0, -arraydc[ez][ey][ex]) +
              0.001 * PetscMax(0.0, arraydc[ez][ey][ex]) +
              *raa0 / (xmax - xmin));
-        for (i = 0; i < m; ++i) {
+        for (i = 0; i < MMA_M; ++i) {
           arrayp[i][ez][ey][ex] =
               PetscPowScalar(arrayU[ez][ey][ex] - arrayx[ez][ey][ex], 2) *
               (1.001 + *raa / (xmax - xmin));
@@ -316,7 +316,7 @@ PetscErrorCode gcmmaSub(PCCtx *s_ctx, MMAx *mmax, Vec dc, PetscScalar *raa,
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, mmax->xlast, &arrayx));
   PetscScalar fval = 0;
   PetscCall(VecSum(mmax->xlast, &fval));
-  for (i = 0; i < m; ++i) {
+  for (i = 0; i < MMA_M; ++i) {
     PetscCall(DMDAVecRestoreArray(s_ctx->dm, mmax->b[i], &arrayb[i]));
     PetscCall(VecSum(mmax->b[i], &mmax->bval[i]));
     mmax->bval[i] -= fval;
@@ -328,7 +328,7 @@ PetscErrorCode gcmmaSub(PCCtx *s_ctx, MMAx *mmax, Vec dc, PetscScalar *raa,
 
   PetscCall(DMDAVecRestoreArray(s_ctx->dm, mmax->p0, &arrayp0));
   PetscCall(DMDAVecRestoreArray(s_ctx->dm, mmax->q0, &arrayq0));
-  for (i = 0; i < m; i++) {
+  for (i = 0; i < MMA_M; i++) {
     PetscCall(DMDAVecRestoreArray(s_ctx->dm, mmax->p[i], &arrayp[i]));
     PetscCall(DMDAVecRestoreArray(s_ctx->dm, mmax->q[i], &arrayq[i]));
   }
@@ -403,7 +403,7 @@ PetscErrorCode omegaInitial(PCCtx *s_ctx, MMAx *mmax, Vec x) {
   PetscCall(DMDAVecRestoreArray(s_ctx->dm, mmax->xsi, &arrayxsi));
   mmax->z = 1;
   mmax->zet = 1;
-  for (i = 0; i < m; ++i) {
+  for (i = 0; i < MMA_M; ++i) {
     mmax->y[i] = 1;
     mmax->lam[i] = 1;
     mmax->s[i] = 1;
@@ -419,7 +419,7 @@ PetscErrorCode computeResidual(PCCtx *s_ctx, MMAx *mmax, Vec x,
   PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez, i;
   PetscScalar ***arrayx, ***arrayrex, ***arrayxsi, ***arrayeta, ***arrayU,
       ***arrayL, ***arrayp0, ***arrayq0, ***arrayrexsi, ***arrayreeta,
-      ***arrayalpha, ***arraybeta, ***arrayp[m], ***arrayq[m], ***arraygvec[m];
+      ***arrayalpha, ***arraybeta, ***arrayp[MMA_M], ***arrayq[MMA_M], ***arraygvec[MMA_M];
   PetscCall(
       DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mmax->alpha, &arrayalpha));
@@ -434,7 +434,7 @@ PetscErrorCode computeResidual(PCCtx *s_ctx, MMAx *mmax, Vec x,
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mmax->mmaU, &arrayU));
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mmax->p0, &arrayp0));
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mmax->q0, &arrayq0));
-  for (i = 0; i < m; i++) {
+  for (i = 0; i < MMA_M; i++) {
     PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mmax->p[i], &arrayp[i]));
     PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mmax->q[i], &arrayq[i]));
     PetscCall(DMDAVecGetArray(s_ctx->dm, mmax->gvec[i], &arraygvec[i]));
@@ -456,7 +456,7 @@ PetscErrorCode computeResidual(PCCtx *s_ctx, MMAx *mmax, Vec x,
                                                          arrayx[ez][ey][ex]) -
                                  epsi;
         arrayrex[ez][ey][ex] += arrayeta[ez][ey][ex] - arrayxsi[ez][ey][ex];
-        for (int i = 0; i < m; i++) {
+        for (int i = 0; i < MMA_M; i++) {
           arrayrex[ez][ey][ex] +=
               arrayp[i][ez][ey][ex] * mmax->lam[i] /
                   ((arrayU[ez][ey][ex] - arrayx[ez][ey][ex]) *
@@ -472,7 +472,7 @@ PetscErrorCode computeResidual(PCCtx *s_ctx, MMAx *mmax, Vec x,
       }
     }
   }
-  for (i = 0; i < m; i++) {
+  for (i = 0; i < MMA_M; i++) {
     mmax->rey[i] =
         mmax->c[i] + mmax->d[i] * mmax->y[i] - mmax->mu[i] - mmax->lam[i];
     mmax->remu[i] = mmax->mu[i] * mmax->y[i] - epsi;
@@ -484,7 +484,7 @@ PetscErrorCode computeResidual(PCCtx *s_ctx, MMAx *mmax, Vec x,
   }
   mmax->rez = mmax->a0 - mmax->zet;
   mmax->rezet = mmax->zet * mmax->z - epsi;
-  for (i = 0; i < m; i++) {
+  for (i = 0; i < MMA_M; i++) {
     mmax->rez -= mmax->a[i] * mmax->lam[i];
   }
 
@@ -500,7 +500,7 @@ PetscErrorCode computeResidual(PCCtx *s_ctx, MMAx *mmax, Vec x,
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, mmax->mmaU, &arrayU));
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, mmax->p0, &arrayp0));
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, mmax->q0, &arrayq0));
-  for (i = 0; i < m; ++i) {
+  for (i = 0; i < MMA_M; ++i) {
     PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, mmax->p[i], &arrayp[i]));
     PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, mmax->q[i], &arrayq[i]));
   }
@@ -517,7 +517,7 @@ PetscErrorCode computeResidual(PCCtx *s_ctx, MMAx *mmax, Vec x,
   *residunorm += normreeta * normreeta;
   *residumax = PetscMax(maxrex, maxrexsi);
   *residumax = PetscMax(*residumax, maxreeta);
-  for (i = 0; i < m; ++i) {
+  for (i = 0; i < MMA_M; ++i) {
     *residumax = PetscMax(*residumax, PetscAbsScalar(mmax->rey[i]));
     *residumax = PetscMax(*residumax, PetscAbsScalar(mmax->remu[i]));
     *residumax = PetscMax(*residumax, PetscAbsScalar(mmax->res[i]));
@@ -542,8 +542,8 @@ PetscErrorCode computeDelta(PCCtx *s_ctx, MMAx *mmax, Vec x, PetscScalar epsi) {
   PetscInt ex, ey, ez, nx, ny, nz, startx, starty, startz, i;
   PetscScalar ***arraytemp, ***arraytemp1, ***arrayx, ***arrayalpha,
       ***arraybeta, ***arrayxsi, ***arrayeta, ***arrayp0, ***arrayq0,
-      ***arrayp[m], ***arrayq[m], ***arrayL, ***arrayU, ***arraydelx,
-      ***arraydiagx, ***arrayg[m];
+      ***arrayp[MMA_M], ***arrayq[MMA_M], ***arrayL, ***arrayU, ***arraydelx,
+      ***arraydiagx, ***arrayg[MMA_M];
   PetscCall(
       DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
   PetscCall(DMDAVecGetArray(s_ctx->dm, mmax->temp, &arraytemp));
@@ -560,7 +560,7 @@ PetscErrorCode computeDelta(PCCtx *s_ctx, MMAx *mmax, Vec x, PetscScalar epsi) {
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mmax->xsi, &arrayxsi));
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mmax->eta, &arrayeta));
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, x, &arrayx));
-  for (i = 0; i < m; ++i) {
+  for (i = 0; i < MMA_M; ++i) {
     PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mmax->p[i], &arrayp[i]));
     PetscCall(DMDAVecGetArrayRead(s_ctx->dm, mmax->q[i], &arrayq[i]));
     PetscCall(DMDAVecGetArray(s_ctx->dm, mmax->g[i], &arrayg[i]));
@@ -568,7 +568,7 @@ PetscErrorCode computeDelta(PCCtx *s_ctx, MMAx *mmax, Vec x, PetscScalar epsi) {
   for (ez = startz; ez < startz + nz; ++ez) {
     for (ey = starty; ey < starty + ny; ++ey) {
       for (ex = startx; ex < startx + nx; ++ex) {
-        for (i = 0; i < m; ++i) {
+        for (i = 0; i < MMA_M; ++i) {
           arrayg[i][ez][ey][ex] =
               arrayp[0][ez][ey][ex] /
                   ((arrayU[ez][ey][ex] - arrayx[ez][ey][ex]) *
@@ -607,7 +607,7 @@ PetscErrorCode computeDelta(PCCtx *s_ctx, MMAx *mmax, Vec x, PetscScalar epsi) {
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, mmax->p0, &arrayp0));
   PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, mmax->q0, &arrayq0));
 
-  for (i = 0; i < m; ++i) {
+  for (i = 0; i < MMA_M; ++i) {
     PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, mmax->p[i], &arrayp[i]));
     PetscCall(DMDAVecRestoreArrayRead(s_ctx->dm, mmax->q[i], &arrayq[i]));
   }
@@ -671,7 +671,7 @@ PetscErrorCode computeDelta(PCCtx *s_ctx, MMAx *mmax, Vec x, PetscScalar epsi) {
   // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "dmu[0]: %f\n", mmax->dmu[0]));
   // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "dzet: %f\n", mmax->dzet));
   // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "ds[0]: %f\n", mmax->ds[0]));
-  for (i = 0; i < m; i++) {
+  for (i = 0; i < MMA_M; i++) {
     PetscCall(DMDAVecRestoreArray(s_ctx->dm, mmax->g[i], &arrayg[i]));
   }
   PetscCall(DMDAVecRestoreArray(s_ctx->dm, mmax->dx, &arraydx));
@@ -756,7 +756,7 @@ PetscErrorCode omegaUpdate(MMAx *mmax, Vec x, PetscScalar coef) {
   PetscCall(VecAXPY(mmax->xsi, coef, mmax->dxsi));
   PetscCall(VecAXPY(mmax->eta, coef, mmax->deta));
   PetscInt i = 0;
-  for (i = 0; i < m; ++i) {
+  for (i = 0; i < MMA_M; ++i) {
     mmax->y[i] += coef * mmax->dy[i];
     mmax->mu[i] += coef * mmax->dmu[i];
     mmax->s[i] += coef * mmax->ds[i];

@@ -34,7 +34,8 @@ int main(int argc, char **argv) {
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-iter", &iter_number1, NULL));
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-iter2", &iter_number2, NULL));
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-iter3", &iter_number3, NULL));
-  PetscCall(PetscOptionsGetInt(NULL, NULL, "-frequency", &output_frequency, NULL));
+  PetscCall(
+      PetscOptionsGetInt(NULL, NULL, "-frequency", &output_frequency, NULL));
   PetscInt mesh[3] = {grid, grid, grid};
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
   PetscScalar cost = 0;
@@ -78,7 +79,8 @@ int main(int argc, char **argv) {
     //   PetscViewer viewer;
     //   sprintf(str, "../data/output/change%04d.vtr", loop);
     //   PetscCall(
-    //       PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
+    //       PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE,
+    //       &viewer));
     //   PetscCall(VecView(x, viewer));
     //   PetscCall(PetscViewerDestroy(&viewer));
     // }
@@ -181,7 +183,7 @@ int main(int argc, char **argv) {
     //   PetscCall(VecView(x, viewer));
     //   PetscCall(PetscViewerDestroy(&viewer));
     // }
-    
+
     PetscCall(formkappa(&test2, x, penal));
     PetscCall(formMatrix(&test2, A));
     PetscCall(formRHS(&test2, rhs, x, penal));

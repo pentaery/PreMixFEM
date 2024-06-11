@@ -2,6 +2,7 @@
 #include "PreMixFEM_3D.h"
 #include "oCriteria.h"
 #include "optimization.h"
+#include <slepceps.h>
 #include "system.h"
 #include <petscdm.h>
 #include <petscdmda.h>
@@ -21,7 +22,7 @@
 
 int main(int argc, char **argv) {
   PetscCall(
-      PetscInitialize(&argc, &argv, (char *)0, "Toplogical Optimiazation\n"));
+      SlepcInitialize(&argc, &argv, (char *)0, "Toplogical Optimiazation\n"));
   PCCtx test;
   MMAx mmax;
   PetscInt grid = 60;
@@ -81,6 +82,16 @@ int main(int argc, char **argv) {
     PetscCall(formMatrix(&test, A));
     PetscCall(formRHS(&test, rhs, x, penal));
     PetscCall(KSPSetOperators(ksp, A, A));
+
+    PC pc;
+    PetscCall(KSPGetPC(ksp, &pc));
+    PetscCall(PCSetType(pc, PCSHELL));
+    PetscCall(PCShellSetContext(pc, &test));
+    PetscCall(PCShellSetSetUp(pc, PC_setup));
+    PetscCall(PCShellSetApply(pc, PC_apply_vec));
+    PetscCall(
+        PCShellSetName(pc, "3levels-MG-via-GMsFEM-with-velocity-elimination"));
+    
     PetscCall(PetscLogEventBegin(linearsolve, 0, 0, 0, 0));
     PetscCall(KSPSolve(ksp, rhs, t));
     PetscCall(PetscLogEventEnd(linearsolve, 0, 0, 0, 0));
@@ -105,7 +116,9 @@ int main(int argc, char **argv) {
 
     PetscCall(computeChange(&mmax, x, &change));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));
+    PetscCall(PCDestroy(&pc));
   }
+  PetscCall(PC_final(&test));
 
   PetscCall(MatDestroy(&A));
   PetscCall(VecDestroy(&rhs));
@@ -115,7 +128,7 @@ int main(int argc, char **argv) {
 
   PetscCall(KSPDestroy(&ksp));
   PetscCall(mmaFinal(&mmax));
-  // PetscCall(PC_final(&test));
 
-  PetscCall(PetscFinalize());
+
+  PetscCall(SlepcFinalize());
 }

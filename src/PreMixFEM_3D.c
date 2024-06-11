@@ -2893,7 +2893,7 @@ PetscErrorCode PC_final(PCCtx *s_ctx) {
 PetscErrorCode PC_final_default(PCCtx *s_ctx) {
   PetscFunctionBeginUser;
 
-  PetscCall(DMDestroy(&s_ctx->dm));
+  // PetscCall(DMDestroy(&s_ctx->dm));
   free(s_ctx->ms_bases_c);
   free(s_ctx->ms_bases_cc);
   free(s_ctx->ksp_lv1);
