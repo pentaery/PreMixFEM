@@ -134,7 +134,7 @@ PetscErrorCode formMatrix(PCCtx *s_ctx, Mat A) {
         if (arrayBoundary[ez][ey][ex] == 1) {
           col[0] = (MatStencil){.i = ex, .j = ey, .k = ez};
           row[0] = (MatStencil){.i = ex, .j = ey, .k = ez};
-          val_A[0][0] = 2 * s_ctx->H_x * s_ctx->H_y / s_ctx->H_z *
+          val_A[0][0] = 2.0 * s_ctx->H_x * s_ctx->H_y / s_ctx->H_z *
                         arr_kappa_3d[2][ez][ey][ex];
           PetscCall(MatSetValuesStencil(A, 1, &col[0], 1, &row[0], &val_A[0][0],
                                         ADD_VALUES));

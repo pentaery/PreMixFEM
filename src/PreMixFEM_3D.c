@@ -41,6 +41,7 @@ void _PC_get_coarse_elem_corners(PCCtx *s_ctx, const PetscInt coarse_elem,
   *startz = s_ctx->coarse_startz[coarse_elem_z];
   *nz = s_ctx->coarse_lenz[coarse_elem_z];
 }
+// 获取第coarse_elem个粗网格的自由度索引
 
 void _PC_get_dof_idx(PCCtx *s_ctx, PetscInt *dof_idx) {
   PetscInt coarse_elem,
@@ -106,9 +107,10 @@ PetscErrorCode _PC_setup_lv1_J(PCCtx *s_ctx, _IntCtx *int_ctx) {
 
   Mat A_i;
   PetscScalar avg_kappa_e, val_A[2][2];
+  PetscScalar ***arrayBoundary;
   PetscInt ex, ey, ez, startx, starty, startz, nx, ny, nz, coarse_elem, row[2],
       col[2];
-
+  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, s_ctx->boundary, &arrayBoundary));
   for (coarse_elem = 0; coarse_elem < int_ctx->coarse_elem_num; ++coarse_elem) {
     _PC_get_coarse_elem_corners(s_ctx, coarse_elem, &startx, &nx, &starty, &ny,
                                 &startz, &nz);
@@ -265,6 +267,15 @@ PetscErrorCode _PC_setup_lv1_J(PCCtx *s_ctx, _IntCtx *int_ctx) {
             PetscCall(MatSetValues(A_i, 1, &row[0], 1, &col[0], &val_A[0][0],
                                    ADD_VALUES));
           }
+          if (arrayBoundary[ez][ey][ex] == 1) {
+            row[0] = (ez - startz) * ny * nx + (ey - starty) * nx + ex - startx;
+            col[0] = (ez - startz) * ny * nx + (ey - starty) * nx + ex - startx;
+            avg_kappa_e = int_ctx->arr_kappa_3d[2][ez][ey][ex];
+            val_A[0][0] = 2.0 * int_ctx->meas_face_xy * int_ctx->meas_face_xy /
+                          int_ctx->meas_elem * avg_kappa_e;
+            PetscCall(MatSetValues(A_i, 1, &row[0], 1, &col[0], &val_A[0][0],
+                                   ADD_VALUES));
+          }
         }
     PetscCall(MatAssemblyBegin(A_i, MAT_FINAL_ASSEMBLY));
     PetscCall(MatAssemblyEnd(A_i, MAT_FINAL_ASSEMBLY));
@@ -288,7 +299,8 @@ PetscErrorCode _PC_setup_lv1_J(PCCtx *s_ctx, _IntCtx *int_ctx) {
     PetscCall(KSPSetUp(s_ctx->ksp_lv1[coarse_elem]));
     PetscCall(MatDestroy(&A_i));
   }
-
+  PetscCall(
+      DMDAVecRestoreArrayRead(s_ctx->dm, s_ctx->boundary, &arrayBoundary));
   PetscCall(PetscTimeSubtract(&time_tmp));
   s_ctx->t_stages[STAGE_SU_LV1] -= time_tmp;
   PetscFunctionReturn(0);
@@ -2473,13 +2485,12 @@ PetscErrorCode PC_init(PCCtx *s_ctx, PetscScalar *dom, PetscInt *mesh) {
   s_ctx->H_y = dom[1] / (double)mesh[1];
   s_ctx->H_z = dom[2] / (double)mesh[2];
 
-  PetscInt progress;
-  PetscCall(
-      PetscOptionsGetInt(NULL, NULL, "-progress", &progress, NULL));
+  PetscInt progress = 1;
+  PetscCall(PetscOptionsGetInt(NULL, NULL, "-progress", &progress, NULL));
   PetscCall(DMDACreate3d(PETSC_COMM_WORLD, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
                          DM_BOUNDARY_NONE, DMDA_STENCIL_STAR, s_ctx->M,
-                         s_ctx->N, s_ctx->P, progress, progress,
-                         progress, 1, 1, NULL, NULL, NULL, &(s_ctx->dm)));
+                         s_ctx->N, s_ctx->P, progress, progress, progress, 1, 1,
+                         NULL, NULL, NULL, &(s_ctx->dm)));
   // If oversampling=1, DMDA has a ghost point width=1 now, and this will change
   // the construction of A_i in level-1.
   PetscCall(DMSetUp(s_ctx->dm));

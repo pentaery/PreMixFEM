@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
       SlepcInitialize(&argc, &argv, (char *)0, "Toplogical Optimiazation\n"));
   PCCtx test;
   MMAx mmax;
-  PetscInt grid = 60;
+  PetscInt grid = 20;
   PetscInt iter_number = 90;
   PetscLogEvent linearsolve, optimize;
   PetscCall(PetscLogEventRegister("LinearSolve", 0, &linearsolve));
@@ -61,6 +61,7 @@ int main(int argc, char **argv) {
   PetscCall(VecSet(mmax.xlast, volfrac));
   PetscCall(VecSet(x, volfrac));
   PetscCall(formBoundary(&test));
+  PC pc;
   while (PETSC_TRUE) {
     if (loop == iter_number) {
       break;
@@ -71,19 +72,19 @@ int main(int argc, char **argv) {
     PetscCall(VecSum(x, &xvolfrac));
     xvolfrac /= test.M * test.N * test.P;
 
-    PetscViewer viewer;
-    sprintf(str, "../data/output/change%04d.vtr", loop);
-    PetscCall(
-        PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
-    PetscCall(VecView(x, viewer));
-    PetscCall(PetscViewerDestroy(&viewer));
+    // PetscViewer viewer;
+    // sprintf(str, "../data/output/change%04d.vtr", loop);
+    // PetscCall(
+    //     PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
+    // PetscCall(VecView(x, viewer));
+    // PetscCall(PetscViewerDestroy(&viewer));
 
     PetscCall(formkappa(&test, x, penal));
     PetscCall(formMatrix(&test, A));
     PetscCall(formRHS(&test, rhs, x, penal));
     PetscCall(KSPSetOperators(ksp, A, A));
 
-    PC pc;
+
     PetscCall(KSPGetPC(ksp, &pc));
     PetscCall(PCSetType(pc, PCSHELL));
     PetscCall(PCShellSetContext(pc, &test));
@@ -116,8 +117,8 @@ int main(int argc, char **argv) {
 
     PetscCall(computeChange(&mmax, x, &change));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));
-    PetscCall(PCDestroy(&pc));
   }
+  PetscCall(PCDestroy(&pc));
   PetscCall(PC_final(&test));
 
   PetscCall(MatDestroy(&A));
