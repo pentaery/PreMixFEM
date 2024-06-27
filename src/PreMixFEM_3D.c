@@ -1114,11 +1114,13 @@ PetscErrorCode _PC_setup_lv2_J(PCCtx *s_ctx, _IntCtx *int_ctx) {
       coarse_elem_x, coarse_elem_y, coarse_elem_z;
   PetscScalar ***arr_ms_bases_c_array[int_ctx->max_eigen_num_lv1_upd], val_A,
       avg_kappa_e;
+  PetscScalar ***arrayBoundary;
 
   for (i = 0; i < int_ctx->max_eigen_num_lv1_upd; ++i)
     PetscCall(DMDAVecGetArray(s_ctx->dm, int_ctx->ms_bases_c_tmp[i],
                               &arr_ms_bases_c_array[i]));
   _PC_get_dof_idx(s_ctx, &dof_idx[0]);
+  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, s_ctx->boundary, &arrayBoundary));
   PetscCall(MatCreateSeqSBAIJ(PETSC_COMM_SELF, 1,
                               dof_idx[int_ctx->coarse_elem_num],
                               dof_idx[int_ctx->coarse_elem_num],
@@ -1219,6 +1221,13 @@ PetscErrorCode _PC_setup_lv2_J(PCCtx *s_ctx, _IntCtx *int_ctx) {
                     2.0 / (1.0 / int_ctx->arr_kappa_3d[2][ez][ey][ex] +
                            1.0 / int_ctx->arr_kappa_3d[2][ez + 1][ey][ex]);
                 val_A += int_ctx->meas_face_xy * int_ctx->meas_face_xy /
+                         int_ctx->meas_elem * avg_kappa_e *
+                         arr_ms_bases_c_array[i][ez][ey][ex] *
+                         arr_ms_bases_c_array[j][ez][ey][ex];
+              }
+              if (arrayBoundary[ez][ey][ex] == 1) {
+                avg_kappa_e = int_ctx->arr_kappa_3d[2][ez][ey][ex];
+                val_A += 2.0 * int_ctx->meas_face_xy * int_ctx->meas_face_xy /
                          int_ctx->meas_elem * avg_kappa_e *
                          arr_ms_bases_c_array[i][ez][ey][ex] *
                          arr_ms_bases_c_array[j][ez][ey][ex];
@@ -1378,7 +1387,8 @@ PetscErrorCode _PC_setup_lv2_J(PCCtx *s_ctx, _IntCtx *int_ctx) {
   for (i = 0; i < int_ctx->max_eigen_num_lv1_upd; ++i)
     PetscCall(DMDAVecRestoreArray(s_ctx->dm, int_ctx->ms_bases_c_tmp[i],
                                   &arr_ms_bases_c_array[i]));
-
+  PetscCall(
+      DMDAVecRestoreArrayRead(s_ctx->dm, s_ctx->boundary, &arrayBoundary));
   PetscCall(PetscTimeSubtract(&time_tmp));
   s_ctx->t_stages[STAGE_SU_LV2_2] -= time_tmp;
 
@@ -2141,7 +2151,7 @@ PetscErrorCode _PC_setup(PCCtx *s_ctx) {
 }
 
 PetscErrorCode _PC_apply_vec_lv1(PCCtx *s_ctx, Vec x, Vec y) {
-  // Input x, return y, additive.
+  // Input r, return y, additive.
   PetscFunctionBeginUser;
   PetscLogDouble time_tmp;
 
