@@ -1805,12 +1805,14 @@ PetscErrorCode _PC_setup_lv3_cc(PCCtx *s_ctx, _IntCtx *int_ctx) {
   const PetscMPIInt *ng_ranks;
   PetscScalar ***arr_ms_bases_cc_array[int_ctx->max_eigen_num_lv2_upd], val_A,
       avg_kappa_e;
+  PetscScalar ***arrayBoundary;
 
   PetscCall(DMDAGetCorners(s_ctx->dm, &proc_startx, &proc_starty, &proc_startz,
                            &proc_nx, &proc_ny, &proc_nz));
   for (i = 0; i < int_ctx->max_eigen_num_lv2_upd; ++i)
     PetscCall(DMDAVecGetArray(s_ctx->dm, s_ctx->ms_bases_cc[i],
                               &arr_ms_bases_cc_array[i]));
+  PetscCall(DMDAVecGetArrayRead(s_ctx->dm, s_ctx->boundary, &arrayBoundary));
 
   // PetscCall(MatCreateSBAIJ(PETSC_COMM_WORLD, 1, s_ctx->eigen_num_lv2,
   // s_ctx->eigen_num_lv2, PETSC_DETERMINE, PETSC_DETERMINE,
@@ -1965,6 +1967,13 @@ PetscErrorCode _PC_setup_lv3_cc(PCCtx *s_ctx, _IntCtx *int_ctx) {
                        arr_ms_bases_cc_array[row_off][ez][ey][ex] *
                        arr_ms_bases_cc_array[col_off][ez][ey][ex];
             }
+            if (arrayBoundary[ez][ey][ex] == 1) {
+              avg_kappa_e = int_ctx->arr_kappa_3d[2][ez][ey][ex];
+              val_A += 2.0 * int_ctx->meas_face_xy * int_ctx->meas_face_xy /
+                       int_ctx->meas_elem * avg_kappa_e *
+                       arr_ms_bases_cc_array[row_off][ez][ey][ex] *
+                       arr_ms_bases_cc_array[col_off][ez][ey][ex];
+            }
           }
       PetscCall(MatSetValues(A_cc, 1, &row, 1, &col, &val_A, INSERT_VALUES));
     }
@@ -2075,6 +2084,8 @@ PetscErrorCode _PC_setup_lv3_cc(PCCtx *s_ctx, _IntCtx *int_ctx) {
   for (i = 0; i < int_ctx->max_eigen_num_lv2_upd; ++i)
     PetscCall(DMDAVecRestoreArray(s_ctx->dm, s_ctx->ms_bases_cc[i],
                                   &arr_ms_bases_cc_array[i]));
+  PetscCall(
+      DMDAVecRestoreArrayRead(s_ctx->dm, s_ctx->boundary, &arrayBoundary));
   PetscCall(MatAssemblyBegin(A_cc, MAT_FINAL_ASSEMBLY));
   PetscCall(MatAssemblyEnd(A_cc, MAT_FINAL_ASSEMBLY));
   if (!s_ctx->no_shift_A_cc) {
@@ -2401,7 +2412,7 @@ PetscErrorCode _PC_apply_vec_lv3(PCCtx *s_ctx, Vec x, Vec y) {
 
   PetscFunctionReturn(0);
 }
-// DMDA初始化
+
 PetscErrorCode PC_init(PCCtx *s_ctx, PetscScalar *dom, PetscInt *mesh) {
   PetscFunctionBeginUser;
 

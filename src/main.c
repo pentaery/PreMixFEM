@@ -61,7 +61,6 @@ int main(int argc, char **argv) {
   PetscCall(VecSet(mmax.xlast, volfrac));
   PetscCall(VecSet(x, volfrac));
   PetscCall(formBoundary(&test));
-  PC pc;
   while (PETSC_TRUE) {
     if (loop == iter_number) {
       break;
@@ -84,14 +83,14 @@ int main(int argc, char **argv) {
     PetscCall(formRHS(&test, rhs, x, penal));
     PetscCall(KSPSetOperators(ksp, A, A));
 
-
-    PetscCall(KSPGetPC(ksp, &pc));
-    PetscCall(PCSetType(pc, PCSHELL));
-    PetscCall(PCShellSetContext(pc, &test));
-    PetscCall(PCShellSetSetUp(pc, PC_setup));
-    PetscCall(PCShellSetApply(pc, PC_apply_vec));
-    PetscCall(
-        PCShellSetName(pc, "3levels-MG-via-GMsFEM-with-velocity-elimination"));
+    PC pc;
+    // PetscCall(KSPGetPC(ksp, &pc));
+    // PetscCall(PCSetType(pc, PCSHELL));
+    // PetscCall(PCShellSetContext(pc, &test));
+    // PetscCall(PCShellSetSetUp(pc, PC_setup));
+    // PetscCall(PCShellSetApply(pc, PC_apply_vec));
+    // PetscCall(
+    //     PCShellSetName(pc, "3levels-MG-via-GMsFEM-with-velocity-elimination"));
     
     PetscCall(PetscLogEventBegin(linearsolve, 0, 0, 0, 0));
     PetscCall(KSPSolve(ksp, rhs, t));
@@ -117,8 +116,9 @@ int main(int argc, char **argv) {
 
     PetscCall(computeChange(&mmax, x, &change));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));
+    PetscCall(PCDestroy(&pc));
   }
-  PetscCall(PCDestroy(&pc));
+
   PetscCall(PC_final(&test));
 
   PetscCall(MatDestroy(&A));
