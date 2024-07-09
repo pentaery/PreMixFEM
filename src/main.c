@@ -12,6 +12,7 @@
 #include <petsclog.h>
 #include <petscmat.h>
 #include <petscoptions.h>
+#include <petscpc.h>
 #include <petscsys.h>
 #include <petscsystypes.h>
 #include <petsctime.h>
@@ -46,15 +47,14 @@ int main(int argc, char **argv) {
 
   char str[80];
 
-  PetscCall(PC_init(&test, dom, mesh));
-  PetscCall(mmaInit(&test, &mmax));
-  PetscCall(PC_print_info(&test));
+  PetscCall(mmaInit(&mmax, dom, mesh));
 
-  PetscCall(DMCreateMatrix(test.dm, &A));
-  PetscCall(DMCreateGlobalVector(test.dm, &rhs));
-  PetscCall(DMCreateGlobalVector(test.dm, &x));
-  PetscCall(DMCreateGlobalVector(test.dm, &t));
-  PetscCall(DMCreateGlobalVector(test.dm, &dc));
+
+  PetscCall(DMCreateMatrix(mmax.dm, &A));
+  PetscCall(DMCreateGlobalVector(mmax.dm, &rhs));
+  PetscCall(DMCreateGlobalVector(mmax.dm, &x));
+  PetscCall(DMCreateGlobalVector(mmax.dm, &t));
+  PetscCall(DMCreateGlobalVector(mmax.dm, &dc));
 
   PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
   PetscCall(
@@ -63,13 +63,16 @@ int main(int argc, char **argv) {
   //   PetscCall(KSPSetUp(ksp));
   PetscCall(VecSet(mmax.xlast, volfrac));
   PetscCall(VecSet(x, volfrac));
-  PetscCall(formBoundary(&test));
+  PetscCall(formBoundary(&test, &mmax));
   while (PETSC_TRUE) {
     if (loop == iter_number) {
       break;
     }
     loop += 1;
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "loop: %d\n", loop));
+
+    PetscCall(PC_init(&test, dom, mesh, test.dm));
+    PetscCall(PC_print_info(&test));
 
     PetscCall(VecSum(x, &xvolfrac));
     xvolfrac /= test.M * test.N * test.P;
@@ -85,9 +88,8 @@ int main(int argc, char **argv) {
     PetscCall(formMatrix(&test, A));
     PetscCall(formRHS(&test, rhs, x, penal));
     PetscCall(KSPSetOperators(ksp, A, A));
-    
+    PC pc;
     if (!is_petsc_default) {
-      PC pc;
       PetscCall(KSPGetPC(ksp, &pc));
       PetscCall(PCSetType(pc, PCSHELL));
       PetscCall(PCShellSetContext(pc, &test));
@@ -120,17 +122,17 @@ int main(int argc, char **argv) {
 
     PetscCall(computeChange(&mmax, x, &change));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));
-    // PetscCall(PCDestroy(&pc));
+    PetscCall(PC_final(&test));
+    PetscCall(PCDestroy(&pc));
   }
   PetscCall(mmaFinal(&mmax));
-  PetscCall(PC_final(&test));
+
 
   PetscCall(MatDestroy(&A));
   PetscCall(VecDestroy(&rhs));
   PetscCall(VecDestroy(&t));
   PetscCall(VecDestroy(&dc));
   PetscCall(VecDestroy(&x));
-
   PetscCall(KSPDestroy(&ksp));
 
   PetscCall(SlepcFinalize());

@@ -2380,24 +2380,16 @@ PetscErrorCode _PC_apply_vec_lv3(PCCtx *s_ctx, Vec x, Vec y) {
   PetscFunctionReturn(0);
 }
 // DMDA初始化
-PetscErrorCode PC_init(PCCtx *s_ctx, PetscScalar *dom, PetscInt *mesh) {
+PetscErrorCode PC_init(PCCtx *s_ctx, PetscScalar *dom, PetscInt *mesh, DM dm) {
   PetscFunctionBeginUser;
 
-  PetscCheck((dom[0] > 0.0 && dom[1] > 0.0 && dom[2] > 0.0), PETSC_COMM_WORLD,
-             PETSC_ERR_ARG_WRONG,
-             "Errors in dom(L, W, H)=[%.5f, %.5f, %.5f].\n", dom[0], dom[1],
-             dom[2]);
-  PetscCheck((mesh[0] > 0 && mesh[1] > 0 && mesh[2] > 0), PETSC_COMM_WORLD,
-             PETSC_ERR_ARG_WRONG, "Errors in mesh(M, N, P)=[%d, %d, %d].\n",
-             mesh[0], mesh[1], mesh[2]);
+  s_ctx->dm = dm;
   s_ctx->L = dom[0];
   s_ctx->W = dom[1];
   s_ctx->H = dom[2];
   s_ctx->M = mesh[0];
   s_ctx->N = mesh[1];
   s_ctx->P = mesh[2];
-  s_ctx->widthportion = 0.1;
-  s_ctx->lengthportion = 0.1;
 
   s_ctx->smoothing_iters_lv1 = 1;
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-si_lv1",
@@ -2473,16 +2465,6 @@ PetscErrorCode PC_init(PCCtx *s_ctx, PetscScalar *dom, PetscInt *mesh) {
   s_ctx->H_y = dom[1] / (double)mesh[1];
   s_ctx->H_z = dom[2] / (double)mesh[2];
 
-  PetscInt progress;
-  PetscCall(
-      PetscOptionsGetInt(NULL, NULL, "-progress", &progress, NULL));
-  PetscCall(DMDACreate3d(PETSC_COMM_WORLD, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
-                         DM_BOUNDARY_NONE, DMDA_STENCIL_STAR, s_ctx->M,
-                         s_ctx->N, s_ctx->P, progress, progress,
-                         progress, 1, 1, NULL, NULL, NULL, &(s_ctx->dm)));
-  // If oversampling=1, DMDA has a ghost point width=1 now, and this will change
-  // the construction of A_i in level-1.
-  PetscCall(DMSetUp(s_ctx->dm));
 
   for (PetscInt i = 0; i < DIM; ++i)
     PetscCall(DMCreateGlobalVector(s_ctx->dm, &s_ctx->kappa[i]));

@@ -12,14 +12,14 @@
 #include <petscvec.h>
 #include <petscviewer.h>
 
-PetscErrorCode formBoundary(PCCtx *s_ctx) {
+PetscErrorCode formBoundary(PCCtx *s_ctx, MMAx *mmax) {
   PetscFunctionBeginUser;
   PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
   PetscScalar ***array;
-  PetscCall(DMCreateGlobalVector(s_ctx->dm, &s_ctx->boundary));
+  PetscCall(DMCreateGlobalVector(mmax->dm, &s_ctx->boundary));
   PetscCall(
-      DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
-  PetscCall(DMDAVecGetArray(s_ctx->dm, s_ctx->boundary, &array));
+      DMDAGetCorners(mmax->dm, &startx, &starty, &startz, &nx, &ny, &nz));
+  PetscCall(DMDAVecGetArray(mmax->dm, s_ctx->boundary, &array));
   for (ez = startz; ez < startz + nz; ++ez) {
     for (ey = starty; ey < starty + ny; ++ey) {
       for (ex = startx; ex < startx + nx; ++ex) {
@@ -35,7 +35,7 @@ PetscErrorCode formBoundary(PCCtx *s_ctx) {
     }
   }
 
-  PetscCall(DMDAVecRestoreArray(s_ctx->dm, s_ctx->boundary, &array));
+  PetscCall(DMDAVecRestoreArray(mmax->dm, s_ctx->boundary, &array));
 
   PetscFunctionReturn(0);
 }

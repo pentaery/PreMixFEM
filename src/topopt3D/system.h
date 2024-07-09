@@ -1,5 +1,6 @@
 #pragma once
 #include <PreMixFEM_3D.h>
+#include "optimization.h"
 #include <petscdm.h>
 #include <petscdmda.h>
 #include <petscdmdatypes.h>
@@ -21,7 +22,7 @@
 #define kL 1e-6
 #define xlow 0
 
-PetscErrorCode formBoundary(PCCtx *s_ctx);
+PetscErrorCode formBoundary(PCCtx *s_ctx, MMAx *mmax);
 PetscErrorCode formkappa(PCCtx *s_ctx, Vec x, PetscInt penal);
 PetscErrorCode formMatrix(PCCtx *s_ctx, Mat A);
 PetscErrorCode formRHS(PCCtx *s_ctx, Vec rhs, Vec x, PetscInt penal);

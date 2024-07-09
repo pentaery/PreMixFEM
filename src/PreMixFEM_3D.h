@@ -51,7 +51,7 @@ typedef struct preconditioner_context {
   PetscScalar widthportion, lengthportion;
 } PCCtx;
 
-PetscErrorCode PC_init(PCCtx *s_ctx, PetscScalar *dom, PetscInt *mesh);
+PetscErrorCode PC_init(PCCtx *s_ctx, PetscScalar *dom, PetscInt *mesh, DM dm);
 /*
     dom[0], the length; dom[1], the width; dom[2], the height.
     mesh[0], partions in x-direction; mesh[1], partions in y-direction; mesh[2],

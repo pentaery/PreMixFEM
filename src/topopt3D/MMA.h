@@ -15,7 +15,7 @@
 #define xmin 0.0
 #define xmax 1.0
 #define epsimin 1e-7
-PetscErrorCode mmaInit(PCCtx *s_ctx, MMAx *mma_text);
+PetscErrorCode mmaInit(MMAx *mma_text, PetscScalar *dom, PetscInt *mesh);
 PetscErrorCode mmaFinal(MMAx *mma_text);
 PetscErrorCode mmaLimit(PCCtx *s_ctx, MMAx *mmax, PetscInt penal);
 PetscErrorCode mmaSub(PCCtx *s_ctx, MMAx *mmax, Vec dc);

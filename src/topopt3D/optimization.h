@@ -18,6 +18,7 @@
 #define MMA_M 1
 
 typedef struct mma_text {
+  DM dm;
   Vec mmaL, mmaU, mmaLlast, mmaUlast, alpha, beta, xlast, xllast, xlllast, lbd,
       ubd, xsign, dgT, zzz1, zzz2, zzz;
   Vec p0, q0, p[MMA_M], q[MMA_M], b[MMA_M], g[MMA_M];
@@ -34,8 +35,8 @@ typedef struct mma_text {
   Vec temp, temp1, temp2, temp3;
 } MMAx;
 
-PetscErrorCode mmaInit(PCCtx *s_ctx, MMAx *mma_text);
-PetscErrorCode mmaFinal(MMAx *mma_text);
+// PetscErrorCode mmaInit(PCCtx *s_ctx, MMAx *mma_text);
+// PetscErrorCode mmaFinal(MMAx *mma_text);
 PetscErrorCode adjointGradient(PCCtx *s_ctx, MMAx *mma_text,KSP ksp, Mat A, Vec x,
                                Vec t, Vec dc, PetscInt penal);
 PetscErrorCode adjointGradient1(PCCtx *s_ctx, Mat A, Vec x, Vec t, Vec dc,
