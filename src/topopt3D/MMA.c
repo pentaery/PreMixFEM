@@ -32,6 +32,7 @@ PetscErrorCode mmaInit(MMAx *mmax, PetscScalar *dom, PetscInt *mesh) {
   // If oversampling=1, DMDA has a ghost point width=1 now, and this will change
   // the construction of A_i in level-1.
   PetscCall(DMSetUp(mmax->dm));
+  PetscCall(DMCreateGlobalVector(mmax->dm, &mmax->dgT));
   PetscCall(DMCreateGlobalVector(mmax->dm, &mmax->mmaL));
   PetscCall(DMCreateGlobalVector(mmax->dm, &mmax->mmaU));
   PetscCall(DMCreateGlobalVector(mmax->dm, &mmax->xlast));
@@ -80,12 +81,14 @@ PetscErrorCode mmaInit(MMAx *mmax, PetscScalar *dom, PetscInt *mesh) {
   PetscCall(VecSet(mmax->xlast, volfrac));
   PetscCall(VecSet(mmax->lbd, xmin));
   PetscCall(VecSet(mmax->ubd, xmax));
+  PetscCall(VecSet(mmax->dgT, 1.0 / (mesh[0] * mesh[1] * mesh[2])));
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode mmaFinal(MMAx *mmax) {
   PetscFunctionBeginUser;
   PetscInt i = 0;
+  PetscCall(VecDestroy(&mmax->dgT));
   PetscCall(VecDestroy(&mmax->mmaL));
   PetscCall(VecDestroy(&mmax->mmaU));
   PetscCall(VecDestroy(&mmax->xlast));

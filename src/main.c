@@ -71,8 +71,8 @@ int main(int argc, char **argv) {
     loop += 1;
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "loop: %d\n", loop));
 
-    PetscCall(PC_init(&test, dom, mesh, test.dm));
-    PetscCall(PC_print_info(&test));
+    PetscCall(PC_init(&test, dom, mesh, mmax.dm));
+    // PetscCall(PC_print_info(&test));
 
     PetscCall(VecSum(x, &xvolfrac));
     xvolfrac /= test.M * test.N * test.P;
