@@ -86,6 +86,7 @@ PetscErrorCode formMatrix(PCCtx *s_ctx, Mat A) {
 
   PetscCall(
       DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
+  PetscCall(MatZeroEntries(A));
   for (ez = startz; ez < startz + nz; ++ez)
     for (ey = starty; ey < starty + ny; ++ey)
       for (ex = startx; ex < startx + nx; ++ex) {
@@ -165,6 +166,7 @@ PetscErrorCode formRHS(PCCtx *s_ctx, Vec rhs, Vec x, PetscInt penal) {
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, x, &arrayx));
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, s_ctx->kappa[2], &arraykappa));
   PetscCall(DMDAVecGetArrayRead(s_ctx->dm, s_ctx->boundary, &arrayBoundary));
+  PetscCall(VecSet(rhs, 0));
   PetscCall(DMDAVecGetArray(s_ctx->dm, rhs, &array));
   for (ez = startz; ez < startz + nz; ++ez) {
     for (ey = starty; ey < starty + ny; ey++) {

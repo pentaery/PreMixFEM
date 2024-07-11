@@ -2,7 +2,6 @@
 #include "PreMixFEM_3D.h"
 #include "oCriteria.h"
 #include "optimization.h"
-#include <slepceps.h>
 #include "system.h"
 #include <petscdm.h>
 #include <petscdmda.h>
@@ -13,12 +12,14 @@
 #include <petsclog.h>
 #include <petscmat.h>
 #include <petscoptions.h>
+#include <petscpc.h>
 #include <petscsys.h>
 #include <petscsystypes.h>
 #include <petsctime.h>
 #include <petscvec.h>
 #include <petscviewer.h>
 #include <petscviewerhdf5.h>
+#include <slepceps.h>
 
 int main(int argc, char **argv) {
   PetscCall(
@@ -26,12 +27,14 @@ int main(int argc, char **argv) {
   PCCtx test;
   MMAx mmax;
   PetscInt grid = 20;
-  PetscInt iter_number = 90;
+  PetscInt iter_number = 60;
   PetscLogEvent linearsolve, optimize;
+  PetscBool petsc_default = PETSC_FALSE;
   PetscCall(PetscLogEventRegister("LinearSolve", 0, &linearsolve));
   PetscCall(PetscLogEventRegister("Optimization", 1, &optimize));
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-mesh", &grid, NULL));
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-iter", &iter_number, NULL));
+  PetscCall(PetscOptionsHasName(NULL, NULL, "-petsc_default", &petsc_default));
   PetscInt mesh[3] = {grid, grid, grid};
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
   PetscScalar cost = 0;
@@ -62,7 +65,14 @@ int main(int argc, char **argv) {
   PetscCall(VecSet(x, volfrac));
   PetscCall(formBoundary(&test));
   while (PETSC_TRUE) {
-    if (loop == iter_number) {
+    if (loop <= 20) {
+      penal = 1;
+    } else if (loop <= 40) {
+      penal = 2;
+    } else {
+      penal = 3;
+    }
+    if (loop >= iter_number) {
       break;
     }
     loop += 1;
@@ -71,12 +81,12 @@ int main(int argc, char **argv) {
     PetscCall(VecSum(x, &xvolfrac));
     xvolfrac /= test.M * test.N * test.P;
 
-    // PetscViewer viewer;
-    // sprintf(str, "../data/output/change%04d.vtr", loop);
-    // PetscCall(
-    //     PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
-    // PetscCall(VecView(x, viewer));
-    // PetscCall(PetscViewerDestroy(&viewer));
+    PetscViewer viewer;
+    sprintf(str, "../data/output/change%04d.vtr", loop);
+    PetscCall(
+        PetscViewerVTKOpen(PETSC_COMM_WORLD, str, FILE_MODE_WRITE, &viewer));
+    PetscCall(VecView(x, viewer));
+    PetscCall(PetscViewerDestroy(&viewer));
 
     PetscCall(formkappa(&test, x, penal));
     PetscCall(formMatrix(&test, A));
@@ -84,14 +94,17 @@ int main(int argc, char **argv) {
     PetscCall(KSPSetOperators(ksp, A, A));
 
     PC pc;
-    // PetscCall(KSPGetPC(ksp, &pc));
-    // PetscCall(PCSetType(pc, PCSHELL));
-    // PetscCall(PCShellSetContext(pc, &test));
-    // PetscCall(PCShellSetSetUp(pc, PC_setup));
-    // PetscCall(PCShellSetApply(pc, PC_apply_vec));
-    // PetscCall(
-    //     PCShellSetName(pc, "3levels-MG-via-GMsFEM-with-velocity-elimination"));
-    
+    PetscCall(KSPGetPC(ksp, &pc));
+    if (!petsc_default) {
+      PetscCall(PCSetType(pc, PCSHELL));
+      PetscCall(PCShellSetContext(pc, &test));
+      PetscCall(PCShellSetSetUp(pc, PC_setup));
+      PetscCall(PCShellSetApply(pc, PC_apply_vec));
+      PetscCall(PCShellSetName(
+          pc, "3levels-MG-via-GMsFEM-with-velocity-elimination"));
+    } else {
+      PetscCall(PCSetType(pc, PCGAMG));
+    }
     PetscCall(PetscLogEventBegin(linearsolve, 0, 0, 0, 0));
     PetscCall(KSPSolve(ksp, rhs, t));
     PetscCall(PetscLogEventEnd(linearsolve, 0, 0, 0, 0));
@@ -100,7 +113,8 @@ int main(int argc, char **argv) {
 
     PetscCall(VecMax(t, NULL, &tau));
     tau -= tD;
-    tau *= kL / f0;
+    tau *= kL;
+    tau /= f0;
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "tau: %f\n", tau));
 
     PetscCall(computeCostMMA(&test, t, &cost));
@@ -116,10 +130,11 @@ int main(int argc, char **argv) {
 
     PetscCall(computeChange(&mmax, x, &change));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "change: %f\n", change));
-    PetscCall(PCDestroy(&pc));
+    // PetscCall(PCDestroy(&pc));
   }
-
-  PetscCall(PC_final(&test));
+  if (!petsc_default) {
+    PetscCall(PC_final(&test));
+  }
 
   PetscCall(MatDestroy(&A));
   PetscCall(VecDestroy(&rhs));
@@ -129,7 +144,6 @@ int main(int argc, char **argv) {
 
   PetscCall(KSPDestroy(&ksp));
   PetscCall(mmaFinal(&mmax));
-
 
   PetscCall(SlepcFinalize());
 }
