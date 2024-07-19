@@ -191,15 +191,23 @@ PetscErrorCode formRHS(PCCtx *s_ctx, Vec rhs, Vec x, PetscInt penal) {
 
 PetscErrorCode xScaling(DM dm1, DM dm2, Vec x1, Vec x2) {
   PetscFunctionBeginUser;
-  PetscInt ex, ey, ez, startx, starty, startz, nx, ny, nz;
+  PetscInt ex, ey, ez, startx1, startx2, starty1, starty2, startz1, startz2, nx1, nx2, ny1, ny2, nz1, nz2;
   PetscScalar ***arrayx1, ***arrayx2;
-  PetscCall(DMDAGetCorners(dm2, &startx, &starty, &startz, &nx, &ny, &nz));
+  PetscCall(
+      DMDAGetCorners(dm1, &startx1, &starty1, &startz1, &nx1, &ny1, &nz1));
+  PetscCall(
+      DMDAGetCorners(dm2, &startx2, &starty2, &startz2, &nx2, &ny2, &nz2));
   PetscCall(DMDAVecGetArray(dm1, x1, &arrayx1));
   PetscCall(DMDAVecGetArray(dm2, x2, &arrayx2));
-
-  for (ez = startz; ez < startz + nz; ++ez) {
-    for (ey = starty; ey < starty + ny; ++ey) {
-      for (ex = startx; ex < startx + nx; ++ex) {
+  PetscInt q1 = nx2 / nx1;
+  PetscInt q2 = ny2 / ny1;
+  PetscInt q3 = nz2 / nz1;
+  PetscInt r1 = nx2 % nx1;
+  PetscInt r2 = ny2 % ny1;
+  PetscInt r3 = nz2 % nz1;
+  for (ez = startz2; ez < startz2 + nz2; ++ez) {
+    for (ey = starty2; ey < starty2 + ny2; ++ey) {
+      for (ex = startx2; ex < startx2 + nx2; ++ex) {
         arrayx2[ez][ey][ex] = arrayx1[ez / 2][ey / 2][ex / 2];
       }
     }
