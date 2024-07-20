@@ -191,7 +191,8 @@ PetscErrorCode formRHS(PCCtx *s_ctx, Vec rhs, Vec x, PetscInt penal) {
 
 PetscErrorCode xScaling(DM dm1, DM dm2, Vec x1, Vec x2) {
   PetscFunctionBeginUser;
-  PetscInt ex, ey, ez, startx1, startx2, starty1, starty2, startz1, startz2, nx1, nx2, ny1, ny2, nz1, nz2;
+  PetscInt ex, ey, ez, startx1, startx2, starty1, starty2, startz1, startz2,
+      nx1, nx2, ny1, ny2, nz1, nz2;
   PetscScalar ***arrayx1, ***arrayx2;
   PetscCall(
       DMDAGetCorners(dm1, &startx1, &starty1, &startz1, &nx1, &ny1, &nz1));
@@ -205,10 +206,58 @@ PetscErrorCode xScaling(DM dm1, DM dm2, Vec x1, Vec x2) {
   PetscInt r1 = nx2 % nx1;
   PetscInt r2 = ny2 % ny1;
   PetscInt r3 = nz2 % nz1;
+  PetscInt eax[nx1 + 1], eay[ny1 + 1], eaz[nz1 + 1];
+  eax[0] = startx2;
+  eay[0] = starty2;
+  eaz[0] = startz2;
+  // PetscCall(PetscPrintf(PETSC_COMM_SELF, "eax: %d\n", eax[0]));
+  PetscInt i, j, k;
+  for (i = 1; i <= nx1; ++i) {
+    if (i <= r1) {
+      eax[i] = eax[i - 1] + q1 + 1;
+    } else {
+      eax[i] = eax[i - 1] + q1;
+    }
+    // PetscCall(PetscPrintf(PETSC_COMM_SELF, "eax: %d\n", eax[i]));
+  }
+  // PetscCall(PetscPrintf(PETSC_COMM_SELF, "\n"));
+  for (i = 1; i <= ny1; ++i) {
+    if (i <= r2) {
+      eay[i] = eay[i - 1] + q2 + 1;
+    } else {
+      eay[i] = eay[i - 1] + q2;
+    }
+  }
+  // PetscCall(PetscPrintf(PETSC_COMM_SELF, "eay: %d\n", eay[0]));
+  // PetscCall(PetscPrintf(PETSC_COMM_SELF, "eay: %d\n", eay[ny1]));
+  for (i = 1; i <= nz1; ++i) {
+    if (i <= r3) {
+      eaz[i] = eaz[i - 1] + q3 + 1;
+    } else {
+      eaz[i] = eaz[i - 1] + q3;
+    }
+  }
+  // PetscCall(PetscPrintf(PETSC_COMM_SELF, "eaz: %d\n", eaz[0]));
+  // PetscCall(PetscPrintf(PETSC_COMM_SELF, "eaz: %d\n", eaz[nz1]));
   for (ez = startz2; ez < startz2 + nz2; ++ez) {
     for (ey = starty2; ey < starty2 + ny2; ++ey) {
       for (ex = startx2; ex < startx2 + nx2; ++ex) {
-        arrayx2[ez][ey][ex] = arrayx1[ez / 2][ey / 2][ex / 2];
+        for (i = 0; i < nx1; ++i) {
+          if (ex >= eax[i] && ex < eax[i + 1]) {
+            break;
+          }
+        }
+        for (j = 0; j < ny1; ++j) {
+          if (ey >= eay[j] && ey < eay[j + 1]) {
+            break;
+          }
+        }
+        for (k = 0; k < nz1; ++k) {
+          if (ez >= eaz[k] && ez < eaz[k + 1]) {
+            break;
+          }
+        }
+        arrayx2[ez][ey][ex] = arrayx1[startz1 + k][starty1 + j][startx1 + i];
       }
     }
   }

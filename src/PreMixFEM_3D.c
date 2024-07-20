@@ -287,7 +287,7 @@ PetscErrorCode _PC_setup_lv1_J(PCCtx *s_ctx, _IntCtx *int_ctx) {
     PetscCall(KSPGetPC(s_ctx->ksp_lv1[coarse_elem], &pc_));
     if (s_ctx->use_full_Cholesky_lv1) {
       PetscCall(PCSetType(pc_, PCCHOLESKY));
-      PetscCall(PCFactorSetMatSolverType(pc_, MATSOLVERMKL_CPARDISO));
+      PetscCall(PCFactorSetMatSolverType(pc_, MATSOLVERMKL_PARDISO));
     } else {
       PetscCall(PCSetType(pc_, PCICC));
     }
@@ -1376,7 +1376,7 @@ PetscErrorCode _PC_setup_lv2_J(PCCtx *s_ctx, _IntCtx *int_ctx) {
     PC pc_;
     PetscCall(KSPGetPC(s_ctx->ksp_lv2, &pc_));
     PetscCall(PCSetType(pc_, PCCHOLESKY));
-    PetscCall(PCFactorSetMatSolverType(pc_, MATSOLVERMKL_CPARDISO));
+    PetscCall(PCFactorSetMatSolverType(pc_, MATSOLVERMKL_PARDISO));
     PetscCall(PCSetOptionsPrefix(pc_, "kspl2_"));
     PetscCall(KSPSetErrorIfNotConverged(s_ctx->ksp_lv2, PETSC_TRUE));
     PetscCall(PCSetFromOptions(pc_));

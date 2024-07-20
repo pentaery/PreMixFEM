@@ -15,6 +15,8 @@
 cmake_minimum_required(VERSION 3.1.0)
 
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+set(CMAKE_BUILD_TYPE Debug)
+
 # Use verbose output.
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -50,7 +52,7 @@ endif (CXX_FLAGS)
 project(PreMixFEM)
 set(SOURCES 
  src/PreMixFEM_3D.c
- src/test.c
+ src/main3.c
 # src/test/functiontest.c
  src/topopt3D/optimization.c
  src/topopt3D/system.c

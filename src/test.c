@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
 
   DM dm1, dm2;
   Vec x1, x2;
-  PetscInt m = 10, n = 20;
+  PetscInt m = 20, n = 40;
   PetscCall(DMDACreate3d(PETSC_COMM_WORLD, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE,
                          DM_BOUNDARY_NONE, DMDA_STENCIL_STAR, m, m, m,
                          PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE, 1, 1, NULL,
@@ -32,8 +32,15 @@ int main(int argc, char **argv) {
                          DM_BOUNDARY_NONE, DMDA_STENCIL_STAR, n, n, n,
                          PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE, 1, 1, NULL,
                          NULL, NULL, &dm2));
+  PetscCall(DMSetUp(dm1));
+  PetscCall(DMSetUp(dm2));
   PetscCall(DMCreateGlobalVector(dm1, &x1));
   PetscCall(DMCreateGlobalVector(dm2, &x2));
+  PetscCall(VecSet(x1, 1.0));
   PetscCall(xScaling(dm1, dm2, x1, x2));
+  PetscCall(VecDestroy(&x1));
+  PetscCall(VecDestroy(&x2));
+  PetscCall(DMDestroy(&dm1));
+  PetscCall(DMDestroy(&dm2));
   PetscCall(PetscFinalize());
 }
