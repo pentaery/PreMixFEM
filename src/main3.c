@@ -26,14 +26,13 @@ int main(int argc, char **argv) {
   PCCtx test;
   MMAx mmax;
   PetscInt grid = 20;
-  PetscInt iter_number1 = 10, iter_number2 = 10, iter_number3 = 10,
+  PetscInt iter_number1 = 90, iter_number2 = 60, iter_number3 = 30,
            output_frequency = 2;
   PetscBool petsc_default = PETSC_TRUE;
   PetscLogEvent linearsolve, optimize;
   PetscCall(PetscLogEventRegister("LinearSolve", 0, &linearsolve));
   PetscCall(PetscLogEventRegister("Optimization", 1, &optimize));
   PetscCall(PetscOptionsHasName(NULL, NULL, "-petsc_default", &petsc_default));
-  petsc_default = PETSC_TRUE;
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-mesh", &grid, NULL));
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-iter", &iter_number1, NULL));
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-iter2", &iter_number2, NULL));
@@ -213,7 +212,7 @@ int main(int argc, char **argv) {
     PetscCall(KSPGetPC(ksp, &pc));
     if (!petsc_default) {
       PetscCall(PCSetType(pc, PCSHELL));
-      PetscCall(PCShellSetContext(pc, &test));
+      PetscCall(PCShellSetContext(pc, &test2));
       PetscCall(PCShellSetSetUp(pc, PC_setup));
       PetscCall(PCShellSetApply(pc, PC_apply_vec));
       PetscCall(PCShellSetName(
@@ -266,7 +265,7 @@ int main(int argc, char **argv) {
   PetscCall(VecDestroy(&x));
   PetscCall(mmaFinal(&mmax));
   if (!petsc_default) {
-    PetscCall(PC_final(&test));
+    PetscCall(PC_final(&test2));
   }
   // round3
 
@@ -325,7 +324,7 @@ int main(int argc, char **argv) {
     PetscCall(KSPGetPC(ksp, &pc));
     if (!petsc_default) {
       PetscCall(PCSetType(pc, PCSHELL));
-      PetscCall(PCShellSetContext(pc, &test));
+      PetscCall(PCShellSetContext(pc, &test3));
       PetscCall(PCShellSetSetUp(pc, PC_setup));
       PetscCall(PCShellSetApply(pc, PC_apply_vec));
       PetscCall(PCShellSetName(
@@ -342,7 +341,8 @@ int main(int argc, char **argv) {
 
     PetscCall(VecMax(t, NULL, &tau));
     tau -= tD;
-    tau *= kL / f0;
+    tau *= kL;
+    tau /= f0;
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "tau: %f\n", tau));
 
     PetscCall(computeCostMMA(&test3, t, &cost));
@@ -369,7 +369,7 @@ int main(int argc, char **argv) {
   PetscCall(KSPDestroy(&ksp));
   PetscCall(mmaFinal(&mmax));
   if (!petsc_default) {
-    PetscCall(PC_final(&test));
+    PetscCall(PC_final(&test3));
   }
   PetscCall(SlepcFinalize());
 }
