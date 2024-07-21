@@ -28,6 +28,7 @@ int main(int argc, char **argv) {
   MMAx mmax;
   PetscInt grid = 20;
   PetscInt iter_number = 60;
+  PetscInt output_frequency = 20;
   PetscLogEvent linearsolve, optimize;
   PetscBool petsc_default = PETSC_FALSE;
   PetscCall(PetscLogEventRegister("LinearSolve", 0, &linearsolve));
@@ -35,6 +36,8 @@ int main(int argc, char **argv) {
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-mesh", &grid, NULL));
   PetscCall(PetscOptionsGetInt(NULL, NULL, "-iter", &iter_number, NULL));
   PetscCall(PetscOptionsHasName(NULL, NULL, "-petsc_default", &petsc_default));
+  PetscCall(
+      PetscOptionsGetInt(NULL, NULL, "-frequency", &output_frequency, NULL));
   PetscInt mesh[3] = {grid, grid, grid};
   PetscScalar dom[3] = {1.0, 1.0, 1.0};
   PetscScalar cost = 0;
@@ -65,13 +68,6 @@ int main(int argc, char **argv) {
   PetscCall(VecSet(x, volfrac));
   PetscCall(formBoundary(&test));
   while (PETSC_TRUE) {
-    if (loop <= 20) {
-      penal = 1;
-    } else if (loop <= 40) {
-      penal = 2;
-    } else {
-      penal = 3;
-    }
     if (loop >= iter_number) {
       break;
     }
@@ -81,7 +77,7 @@ int main(int argc, char **argv) {
     PetscCall(VecSum(x, &xvolfrac));
     xvolfrac /= test.M * test.N * test.P;
 
-    if (loop % 3 == 0) {
+    if (loop % output_frequency == 0) {
       PetscViewer viewer;
       sprintf(str, "../data/output/change%04d.vtr", loop);
       PetscCall(
