@@ -108,6 +108,7 @@ int main(int argc, char **argv) {
     PetscCall(PetscLogEventEnd(linearsolve, 0, 0, 0, 0));
 
     PetscCall(KSPGetIterationNumber(ksp, &iter));
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "iter: %d\n, iter));
 
     PetscCall(VecMax(t, NULL, &tau));
     tau -= tD;
