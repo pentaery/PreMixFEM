@@ -75,7 +75,7 @@ PetscErrorCode formMatrix(PCCtx *s_ctx, Mat A) {
   PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez, i;
   PetscScalar ***arr_kappa_3d[DIM], ***arrayBoundary, val_A[2][2], avg_kappa_e;
   MatStencil row[2], col[2];
-
+  PetscCall(MatZeroEntries(A));
   for (i = 0; i < DIM; ++i) {
     PetscCall(DMGetLocalVector(s_ctx->dm, &kappa_loc[i]));
     PetscCall(DMGlobalToLocal(s_ctx->dm, s_ctx->kappa[i], INSERT_VALUES,
@@ -158,6 +158,7 @@ PetscErrorCode formRHS(PCCtx *s_ctx, Vec rhs, Vec x, PetscInt penal) {
   PetscFunctionBeginUser;
   PetscScalar ***array, ***arraykappa, ***arrayx, ***arrayBoundary;
   PetscInt startx, starty, startz, nx, ny, nz, ex, ey, ez;
+  PetscCall(VecSet(rhs, 0));
   PetscCall(
       DMDAGetCorners(s_ctx->dm, &startx, &starty, &startz, &nx, &ny, &nz));
 
