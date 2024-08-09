@@ -56,6 +56,8 @@ int main(int argc, char **argv) {
   PetscCall(DMCreateMatrix(test.dm, &A));
   PetscCall(DMCreateGlobalVector(test.dm, &rhs));
   PetscCall(DMCreateGlobalVector(test.dm, &x));
+  PetscCall(PetscObjectSetName((PetscObject)x, "xvalue"));
+  PetscCall(PetscObjectSetName((PetscObject)mmax.xlast, "xvalue"));
   PetscCall(DMCreateGlobalVector(test.dm, &t));
   PetscCall(DMCreateGlobalVector(test.dm, &dc));
 
@@ -64,8 +66,22 @@ int main(int argc, char **argv) {
       KSPSetTolerances(ksp, 1e-6, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT));
   PetscCall(KSPSetFromOptions(ksp));
   //   PetscCall(KSPSetUp(ksp));
-  PetscCall(VecSet(mmax.xlast, volfrac));
-  PetscCall(VecSet(x, volfrac));
+  
+    PetscViewer h5_viewer;
+  PetscCall(PetscViewerHDF5Open(PETSC_COMM_WORLD,
+                                "../data/output/change0011.h5", FILE_MODE_READ,
+                                &h5_viewer));
+  PetscCall(VecLoad(x, h5_viewer));
+  PetscCall(PetscViewerDestroy(&h5_viewer));
+  PetscCall(PetscViewerHDF5Open(PETSC_COMM_WORLD,
+                                "../data/output/change0010.h5", FILE_MODE_READ,
+                                &h5_viewer));
+  PetscCall(VecLoad(mmax.xlast, h5_viewer));
+  PetscCall(PetscViewerDestroy(&h5_viewer));
+
+  
+  // PetscCall(VecSet(mmax.xlast, volfrac));
+  // PetscCall(VecSet(x, volfrac));
   PetscCall(formBoundary(&test));
   while (PETSC_TRUE) {
     if (loop >= iter_number) {
